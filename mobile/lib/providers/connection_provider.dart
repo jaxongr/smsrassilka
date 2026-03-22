@@ -120,10 +120,20 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
       timestamp: DateTime.now(),
     ));
 
+    // Build voice file URL from voiceMessageId
+    String? voiceUrl = task.voiceFileUrl;
+    if (voiceUrl == null || voiceUrl.isEmpty) {
+      final voiceId = data['voiceMessageId'] as String?;
+      if (voiceId != null && voiceId.isNotEmpty) {
+        final settings = ref.read(settingsProvider);
+        voiceUrl = '${settings.serverUrl}/api/voice-messages/$voiceId/download';
+      }
+    }
+
     // Download voice file if provided
-    if (task.voiceFileUrl != null && task.voiceFileUrl!.isNotEmpty) {
+    if (voiceUrl != null && voiceUrl.isNotEmpty) {
       try {
-        await _audioService.downloadAndCache(task.voiceFileUrl!, task.taskId);
+        await _audioService.downloadAndCache(voiceUrl, task.taskId);
       } catch (e) {
         debugPrint('Failed to download voice file: $e');
       }
