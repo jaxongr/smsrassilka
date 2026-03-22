@@ -61,7 +61,9 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
 
   void _onConnected() {
     state = ConnectionState.connected;
+    _gatewayActive = true;
     _sendDeviceInfo();
+    _startStatusReporting();
   }
 
   void _onDisconnected() {
