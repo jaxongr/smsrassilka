@@ -1,7 +1,6 @@
 export enum CampaignType {
   SMS = 'SMS',
-  VOICE = 'VOICE',
-  FLASH = 'FLASH',
+  CALL = 'CALL',
 }
 
 export enum CampaignStatus {
@@ -16,9 +15,9 @@ export enum CampaignStatus {
 
 export enum SimStrategy {
   ROUND_ROBIN = 'ROUND_ROBIN',
-  RANDOM = 'RANDOM',
-  LEAST_USED = 'LEAST_USED',
-  SINGLE_SIM = 'SINGLE_SIM',
+  SIM_1_ONLY = 'SIM_1_ONLY',
+  SIM_2_ONLY = 'SIM_2_ONLY',
+  LOAD_BALANCE = 'LOAD_BALANCE',
 }
 
 export enum TaskStatus {

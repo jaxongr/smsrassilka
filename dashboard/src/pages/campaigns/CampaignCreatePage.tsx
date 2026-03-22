@@ -42,7 +42,7 @@ function CampaignCreatePage() {
   const { data: voiceData } = useQuery({
     queryKey: ['voice-messages'],
     queryFn: () => voiceMessagesApi.getVoiceMessages(),
-    enabled: campaignType === CampaignType.VOICE,
+    enabled: campaignType === CampaignType.CALL,
   });
 
   const createMutation = useMutation({
@@ -110,15 +110,14 @@ function CampaignCreatePage() {
                 <Select
                   options={[
                     { label: 'SMS', value: CampaignType.SMS },
-                    { label: 'Ovozli qo\'ng\'iroq', value: CampaignType.VOICE },
-                    { label: 'Flash SMS', value: CampaignType.FLASH },
+                    { label: 'Ovozli qo\'ng\'iroq', value: CampaignType.CALL },
                   ]}
                 />
               </Form.Item>
             </Col>
           </Row>
 
-          {(campaignType === CampaignType.SMS || campaignType === CampaignType.FLASH) && (
+          {campaignType === CampaignType.SMS && (
             <Form.Item name="message" label="Xabar matni" rules={[{ required: true, message: 'Xabar kiriting' }]}>
               <Input.TextArea
                 rows={4}
@@ -129,7 +128,7 @@ function CampaignCreatePage() {
             </Form.Item>
           )}
 
-          {campaignType === CampaignType.VOICE && (
+          {campaignType === CampaignType.CALL && (
             <Form.Item name="voiceMessageId" label="Ovozli xabar" rules={[{ required: true, message: 'Tanlang' }]}>
               <Select
                 placeholder="Ovozli xabarni tanlang"

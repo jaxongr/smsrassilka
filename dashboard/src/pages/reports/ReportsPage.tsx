@@ -31,7 +31,7 @@ const ChartCard = styled(Card)`
   border: 1px solid ${colors.cardBorder};
 `;
 
-const PIE_COLORS = [colors.success, colors.error, colors.warning, colors.primary, '#3B82F6'];
+const PIE_COLORS = [colors.success, colors.error, colors.warning, colors.primary, colors.info];
 
 function ReportsPage() {
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([

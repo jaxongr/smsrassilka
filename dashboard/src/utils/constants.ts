@@ -42,7 +42,7 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
 
 export const SIM_STRATEGY_LABELS: Record<SimStrategy, string> = {
   [SimStrategy.ROUND_ROBIN]: 'Navbatma-navbat',
-  [SimStrategy.RANDOM]: 'Tasodifiy',
-  [SimStrategy.LEAST_USED]: 'Kam ishlatilgan',
-  [SimStrategy.SINGLE_SIM]: 'Bitta SIM',
+  [SimStrategy.SIM_1_ONLY]: 'Faqat SIM 1',
+  [SimStrategy.SIM_2_ONLY]: 'Faqat SIM 2',
+  [SimStrategy.LOAD_BALANCE]: 'Yukni taqsimlash',
 };

@@ -81,7 +81,7 @@ export class ContactsController {
   }
 
   @Post('contact-groups/:id/import')
-  @ApiOperation({ summary: 'Import contacts from CSV/Excel file' })
+  @ApiOperation({ summary: 'Import contacts from CSV/Excel/TXT file' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   importContacts(

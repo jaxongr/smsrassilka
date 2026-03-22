@@ -1,22 +1,57 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Table, Button, Space, Modal, Form, Input, message, Popconfirm } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
   DownloadOutlined,
   AudioOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/common/PageHeader';
 import { FileUpload } from '@/components/common/FileUpload';
 import { voiceMessagesApi, type VoiceMessage } from '@/api/voice-messages.api';
 import { formatDate, formatFileSize, formatDuration } from '@/utils/format';
+import { colors } from '@/styles/theme';
 
 function VoiceMessagesPage() {
   const queryClient = useQueryClient();
   const [uploadOpen, setUploadOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [form] = Form.useForm();
+
+  const handlePlay = async (id: string) => {
+    if (playingId === id) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      const res = await voiceMessagesApi.downloadVoiceMessage(id);
+      const url = window.URL.createObjectURL(res.data);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      setPlayingId(id);
+
+      audio.onended = () => {
+        setPlayingId(null);
+        window.URL.revokeObjectURL(url);
+      };
+
+      audio.play();
+    } catch {
+      message.error('Audio ijro etishda xatolik');
+    }
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['voice-messages'],
@@ -67,7 +102,7 @@ function VoiceMessagesPage() {
       key: 'name',
       render: (v: string) => (
         <Space>
-          <AudioOutlined style={{ color: '#6B46C1' }} />
+          <AudioOutlined style={{ color: colors.primary }} />
           {v}
         </Space>
       ),
@@ -94,9 +129,15 @@ function VoiceMessagesPage() {
     {
       title: 'Amallar',
       key: 'actions',
-      width: 140,
+      width: 180,
       render: (_: unknown, r: VoiceMessage) => (
         <Space>
+          <Button
+            size="small"
+            type={playingId === r.id ? 'primary' : 'default'}
+            icon={playingId === r.id ? <PauseCircleOutlined /> : <PlayCircleOutlined />}
+            onClick={() => handlePlay(r.id)}
+          />
           <Button
             size="small"
             icon={<DownloadOutlined />}
@@ -164,7 +205,7 @@ function VoiceMessagesPage() {
             onFile={(file) => setSelectedFile(file)}
           />
           {selectedFile && (
-            <div style={{ marginTop: 8, fontSize: 13, color: '#6B7280' }}>
+            <div style={{ marginTop: 8, fontSize: 13, color: colors.textSecondary }}>
               Tanlangan: {selectedFile.name} ({formatFileSize(selectedFile.size)})
             </div>
           )}

@@ -74,7 +74,7 @@ function CampaignsPage() {
       dataIndex: 'type',
       key: 'type',
       render: (v: CampaignType) => (
-        <Tag color={v === CampaignType.SMS ? 'blue' : v === CampaignType.VOICE ? 'purple' : 'orange'}>
+        <Tag color={v === CampaignType.SMS ? 'blue' : 'purple'}>
           {v}
         </Tag>
       ),

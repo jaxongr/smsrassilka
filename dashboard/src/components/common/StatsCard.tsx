@@ -19,7 +19,7 @@ const StyledCard = styled(Card)`
   transition: box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: 0 4px 12px rgba(107, 70, 193, 0.08);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
   }
 
   .ant-card-body {

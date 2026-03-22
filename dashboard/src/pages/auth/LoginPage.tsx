@@ -9,53 +9,104 @@ import { useAuthStore } from '@/store/auth.store';
 const Wrapper = styled.div`
   min-height: 100vh;
   display: flex;
+`;
+
+const LeftPanel = styled.div`
+  flex: 1;
+  background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%);
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #1a1a2e 100%);
-  padding: 24px;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -15%;
+    left: -5%;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const BrandIcon = styled.div`
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+`;
+
+const BrandName = styled.h1`
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+`;
+
+const BrandTagline = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
+  margin: 8px 0 0;
+  position: relative;
+  z-index: 1;
+`;
+
+const RightPanel = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: ${colors.bgWhite};
+
+  @media (max-width: 768px) {
+    min-height: 100vh;
+  }
 `;
 
 const LoginCard = styled.div`
   width: 100%;
-  max-width: 420px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 36px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
 `;
 
-const LogoSection = styled.div`
-  text-align: center;
-  margin-bottom: 36px;
-`;
-
-const LogoIcon = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight});
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-  box-shadow: 0 8px 20px rgba(107, 70, 193, 0.35);
-`;
-
-const BrandTitle = styled.h1`
-  font-size: 26px;
+const FormTitle = styled.h2`
+  font-size: 24px;
   font-weight: 700;
   color: ${colors.textPrimary};
-  margin: 0;
-
-  span {
-    color: ${colors.primary};
-  }
+  margin: 0 0 4px;
 `;
 
-const BrandSubtitle = styled.p`
+const FormSubtitle = styled.p`
   font-size: 14px;
   color: ${colors.textSecondary};
-  margin: 6px 0 0;
+  margin: 0 0 32px;
 `;
 
 const SubmitButton = styled(Button)`
@@ -69,7 +120,7 @@ const SubmitButton = styled(Button)`
 
 const Footer = styled.p`
   text-align: center;
-  margin-top: 24px;
+  margin-top: 32px;
   font-size: 13px;
   color: ${colors.textHint};
 `;
@@ -95,46 +146,49 @@ function LoginPage() {
 
   return (
     <Wrapper>
-      <LoginCard>
-        <LogoSection>
-          <LogoIcon>
-            <SendOutlined style={{ fontSize: 28, color: '#fff' }} />
-          </LogoIcon>
-          <BrandTitle>
-            SMS <span>Gateway</span>
-          </BrandTitle>
-          <BrandSubtitle>Boshqaruv paneliga kirish</BrandSubtitle>
-        </LogoSection>
+      <LeftPanel>
+        <BrandIcon>
+          <SendOutlined style={{ fontSize: 32, color: '#fff' }} />
+        </BrandIcon>
+        <BrandName>SMS Gateway</BrandName>
+        <BrandTagline>Xabarlarni tez va oson boshqaring</BrandTagline>
+      </LeftPanel>
 
-        <Form layout="vertical" onFinish={onFinish} requiredMark={false} size="large">
-          <Form.Item
-            name="email"
-            label="Elektron pochta"
-            rules={[
-              { required: true, message: 'Email kiriting' },
-              { type: 'email', message: 'Email noto\'g\'ri' },
-            ]}
-          >
-            <Input prefix={<MailOutlined />} placeholder="email@example.com" />
-          </Form.Item>
+      <RightPanel>
+        <LoginCard>
+          <FormTitle>Tizimga kirish</FormTitle>
+          <FormSubtitle>Boshqaruv paneliga kirish uchun ma'lumotlaringizni kiriting</FormSubtitle>
 
-          <Form.Item
-            name="password"
-            label="Parol"
-            rules={[{ required: true, message: 'Parol kiriting' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Parolingiz" />
-          </Form.Item>
+          <Form layout="vertical" onFinish={onFinish} requiredMark={false} size="large">
+            <Form.Item
+              name="email"
+              label="Elektron pochta"
+              rules={[
+                { required: true, message: 'Email kiriting' },
+                { type: 'email', message: 'Email noto\'g\'ri' },
+              ]}
+            >
+              <Input prefix={<MailOutlined />} placeholder="email@example.com" />
+            </Form.Item>
 
-          <Form.Item>
-            <SubmitButton type="primary" htmlType="submit" loading={loading}>
-              Kirish
-            </SubmitButton>
-          </Form.Item>
-        </Form>
+            <Form.Item
+              name="password"
+              label="Parol"
+              rules={[{ required: true, message: 'Parol kiriting' }]}
+            >
+              <Input.Password prefix={<LockOutlined />} placeholder="Parolingiz" />
+            </Form.Item>
 
-        <Footer>SMS Gateway v1.0 — Barcha huquqlar himoyalangan</Footer>
-      </LoginCard>
+            <Form.Item>
+              <SubmitButton type="primary" htmlType="submit" loading={loading}>
+                Kirish
+              </SubmitButton>
+            </Form.Item>
+          </Form>
+
+          <Footer>SMS Gateway v1.0</Footer>
+        </LoginCard>
+      </RightPanel>
     </Wrapper>
   );
 }

@@ -4,22 +4,22 @@ import type { ContactGroup, Contact } from '@/types/contact.types';
 
 export const contactsApi = {
   getGroups: () =>
-    api.get<ApiResponse<ContactGroup[]>>('/contacts/groups'),
+    api.get<ApiResponse<ContactGroup[]>>('/contact-groups'),
 
   createGroup: (data: { name: string; description?: string }) =>
-    api.post<ApiResponse<ContactGroup>>('/contacts/groups', data),
+    api.post<ApiResponse<ContactGroup>>('/contact-groups', data),
 
   getGroup: (id: string) =>
-    api.get<ApiResponse<ContactGroup>>(`/contacts/groups/${id}`),
+    api.get<ApiResponse<ContactGroup>>(`/contact-groups/${id}`),
 
   updateGroup: (id: string, data: { name?: string; description?: string }) =>
-    api.patch<ApiResponse<ContactGroup>>(`/contacts/groups/${id}`, data),
+    api.patch<ApiResponse<ContactGroup>>(`/contact-groups/${id}`, data),
 
   deleteGroup: (id: string) =>
-    api.delete<ApiResponse<void>>(`/contacts/groups/${id}`),
+    api.delete<ApiResponse<void>>(`/contact-groups/${id}`),
 
   getGroupContacts: (id: string, params?: PaginationParams) =>
-    api.get<PaginatedResponse<Contact>>(`/contacts/groups/${id}/contacts`, {
+    api.get<PaginatedResponse<Contact>>(`/contact-groups/${id}/contacts`, {
       params,
     }),
 
@@ -32,13 +32,13 @@ export const contactsApi = {
       variables?: Record<string, string>;
     },
   ) =>
-    api.post<ApiResponse<Contact>>(`/contacts/groups/${groupId}/contacts`, data),
+    api.post<ApiResponse<Contact>>(`/contact-groups/${groupId}/contacts`, data),
 
   importContacts: (groupId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     return api.post<ApiResponse<{ imported: number; duplicates: number }>>(
-      `/contacts/groups/${groupId}/import`,
+      `/contact-groups/${groupId}/import`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } },
     );

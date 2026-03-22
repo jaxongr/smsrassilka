@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Badge, Dropdown, Avatar, Space, Typography } from 'antd';
+import { Layout, Menu, Badge, Dropdown, Avatar, Typography } from 'antd';
 import {
   DashboardOutlined,
   MobileOutlined,
@@ -33,7 +33,7 @@ const StyledLayout = styled(Layout)`
 const StyledSider = styled(Sider)`
   background: ${colors.siderBg} !important;
   border-right: none;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
 
   .ant-layout-sider-children {
     display: flex;
@@ -61,7 +61,7 @@ const LogoTitle = styled.h2<{ $collapsed: boolean }>`
   overflow: hidden;
 
   span {
-    color: ${colors.primary};
+    color: ${colors.primaryLight};
   }
 `;
 
@@ -75,7 +75,7 @@ const LogoSubtitle = styled.p<{ $collapsed: boolean }>`
 const OnlineBadge = styled.div<{ $collapsed: boolean }>`
   margin: 8px 16px;
   padding: 8px 12px;
-  background: rgba(107, 70, 193, 0.15);
+  background: rgba(37, 99, 235, 0.12);
   border-radius: 8px;
   display: ${(p) => (p.$collapsed ? 'none' : 'flex')};
   align-items: center;
@@ -97,7 +97,7 @@ const StyledHeader = styled(Header)`
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid ${colors.cardBorder};
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   height: 64px;
   line-height: 64px;
 `;

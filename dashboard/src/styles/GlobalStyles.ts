@@ -1,4 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
+import { colors } from './theme';
 
 export const GlobalStyles = createGlobalStyle`
   * {
@@ -9,8 +10,8 @@ export const GlobalStyles = createGlobalStyle`
 
   body {
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #FAF9FE;
-    color: #1A1A2E;
+    background-color: ${colors.bgBody};
+    color: ${colors.textPrimary};
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -29,12 +30,12 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #D1D5DB;
+    background: ${colors.cardBorder};
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #9CA3AF;
+    background: ${colors.textHint};
   }
 
   .ant-layout {
@@ -49,11 +50,11 @@ export const GlobalStyles = createGlobalStyle`
   }
 
   .ant-card {
-    border: 1px solid #F0EEF5;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border: 1px solid ${colors.cardBorder};
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   }
 
   .ant-btn-primary {
-    box-shadow: 0 2px 4px rgba(107, 70, 193, 0.3);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.25);
   }
 `;

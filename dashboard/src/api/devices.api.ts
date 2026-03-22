@@ -27,7 +27,7 @@ export const devicesApi = {
     data: { phoneNumber?: string; isActive?: boolean; dailyLimit?: number },
   ) =>
     api.patch<ApiResponse<void>>(
-      `/devices/${deviceId}/sim/${slotIndex}`,
+      `/devices/${deviceId}/sims/${slotIndex}`,
       data,
     ),
 };

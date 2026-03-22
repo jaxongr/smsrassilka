@@ -12,7 +12,7 @@ import {
   message,
   Popconfirm,
 } from 'antd';
-import { ArrowLeftOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DeleteOutlined, CopyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/common/PageHeader';
 import { devicesApi } from '@/api/devices.api';
@@ -172,6 +172,23 @@ function DeviceDetailPage() {
             {device.lastSeen ? formatDate(device.lastSeen) : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="Qo'shilgan sana">{formatDate(device.createdAt)}</Descriptions.Item>
+          <Descriptions.Item label="API kalit (Token)" span={3}>
+            <Space>
+              <code style={{ fontSize: 12, background: '#F3F4F6', padding: '2px 8px', borderRadius: 4 }}>
+                {device.apiKey}
+              </code>
+              <Button
+                size="small"
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(device.apiKey);
+                  message.success('Token nusxalandi');
+                }}
+              >
+                Nusxalash
+              </Button>
+            </Space>
+          </Descriptions.Item>
         </Descriptions>
       </Card>
 

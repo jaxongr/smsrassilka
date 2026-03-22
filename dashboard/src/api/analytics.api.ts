@@ -20,5 +20,5 @@ export const analyticsApi = {
     }),
 
   getDeliveryReport: (campaignId: string) =>
-    api.get<ApiResponse<DeliveryReport>>(`/analytics/delivery-report/${campaignId}`),
+    api.get<ApiResponse<DeliveryReport>>(`/analytics/campaigns/${campaignId}/report`),
 };

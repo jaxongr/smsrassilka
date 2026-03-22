@@ -152,13 +152,20 @@ export class ContactsService {
     let contacts: { phoneNumber: string; firstName?: string; lastName?: string }[];
 
     try {
-      if (ext === 'csv') {
+      if (ext === 'txt') {
+        const text = file.buffer.toString('utf-8');
+        contacts = text
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0)
+          .map((phoneNumber) => ({ phoneNumber }));
+      } else if (ext === 'csv') {
         contacts = parseCsv(file.buffer);
       } else if (['xlsx', 'xls'].includes(ext || '')) {
         contacts = parseExcel(file.buffer);
       } else {
         throw new BadRequestException(
-          'Unsupported file format. Use CSV or XLSX.',
+          'Unsupported file format. Use CSV, XLSX, or TXT.',
         );
       }
     } catch (error) {

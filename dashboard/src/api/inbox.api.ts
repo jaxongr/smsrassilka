@@ -13,7 +13,7 @@ export const inboxApi = {
     api.patch<ApiResponse<void>>(`/inbox/${id}/read`),
 
   markAllAsRead: () =>
-    api.patch<ApiResponse<void>>('/inbox/read-all'),
+    api.post<ApiResponse<void>>('/inbox/mark-all-read'),
 
   replyToMessage: (
     id: string,

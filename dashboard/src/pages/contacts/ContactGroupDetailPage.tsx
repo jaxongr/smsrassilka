@@ -189,8 +189,8 @@ function ContactGroupDetailPage() {
         footer={null}
       >
         <FileUpload
-          accept=".csv,.xlsx,.xls"
-          hint="CSV yoki Excel fayl (phoneNumber, firstName, lastName ustunlari)"
+          accept=".csv,.xlsx,.xls,.txt"
+          hint="CSV, Excel yoki TXT fayl (TXT: har qatorda bitta telefon raqam, CSV/Excel: phoneNumber, firstName, lastName ustunlari)"
           onFile={(file) => importMutation.mutate(file)}
         />
         {importMutation.isPending && (

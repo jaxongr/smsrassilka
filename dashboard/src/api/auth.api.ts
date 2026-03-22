@@ -24,5 +24,5 @@ export const authApi = {
       refreshToken: token,
     }),
 
-  getProfile: () => api.get<ApiResponse<User>>('/auth/profile'),
+  getProfile: () => api.get<ApiResponse<User>>('/users/me'),
 };
