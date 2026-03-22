@@ -154,7 +154,7 @@ export class ContactsService {
     try {
       if (ext === 'csv') {
         contacts = parseCsv(file.buffer);
-      } else if (['xlsx', 'xls'].includes(ext)) {
+      } else if (['xlsx', 'xls'].includes(ext || '')) {
         contacts = parseExcel(file.buffer);
       } else {
         throw new BadRequestException(

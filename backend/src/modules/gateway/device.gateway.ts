@@ -310,7 +310,7 @@ export class DeviceGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return false;
     }
 
-    const socket = this.server.sockets.get(socketId);
+    const socket = (this.server.sockets as any).get(socketId);
 
     if (!socket) {
       // Socket no longer exists, clean up
