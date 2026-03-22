@@ -13,9 +13,9 @@ class SmsTask {
 
   factory SmsTask.fromJson(Map<String, dynamic> json) {
     return SmsTask(
-      taskId: json['taskId'] as String,
-      phoneNumber: json['phoneNumber'] as String,
-      message: json['message'] as String,
+      taskId: json['taskId'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String? ?? '',
+      message: (json['messageBody'] ?? json['message'] ?? '') as String,
       simSlot: json['simSlot'] as int? ?? 0,
     );
   }

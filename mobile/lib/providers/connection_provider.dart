@@ -96,7 +96,7 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
     ));
 
     final result = await _smsService.sendSms(task);
-    _wsService.sendMessage('task:result', result.toJson());
+    _wsService.sendMessage('task_result', result.toJson());
 
     final statsNotifier = ref.read(statsProvider.notifier);
     if (result.status == TaskStatus.success) {
@@ -130,7 +130,7 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
     }
 
     final result = await _callService.makeCall(task);
-    _wsService.sendMessage('task:result', result.toJson());
+    _wsService.sendMessage('task_result', result.toJson());
 
     final statsNotifier = ref.read(statsProvider.notifier);
     if (result.status == TaskStatus.success) {
