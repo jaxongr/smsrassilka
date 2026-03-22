@@ -82,7 +82,7 @@ function DashboardPage() {
             title="Yuborilgan SMS"
             value={formatNumber(stats?.totalSmsSent ?? 0)}
             color={colors.info}
-            changeLabel={`Bugun: ${formatNumber(stats?.todaySmsSent ?? 0)}`}
+            changeLabel={`Bugun: ${formatNumber(stats?.smsSentToday ?? 0)}`}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -174,16 +174,16 @@ function DashboardPage() {
                   <Tooltip />
                   <Area
                     type="monotone"
-                    dataKey="sent"
-                    name="Yuborildi"
+                    dataKey="sms"
+                    name="SMS"
                     stroke={colors.primary}
                     fill="url(#colorSent)"
                     strokeWidth={2}
                   />
                   <Area
                     type="monotone"
-                    dataKey="delivered"
-                    name="Yetkazildi"
+                    dataKey="calls"
+                    name="Qo'ng'iroqlar"
                     stroke={colors.success}
                     fill="url(#colorDelivered)"
                     strokeWidth={2}

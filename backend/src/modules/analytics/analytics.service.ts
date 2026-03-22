@@ -22,71 +22,41 @@ export class AnalyticsService {
       callsToday,
       callsMonth,
       activeCampaigns,
+      totalCampaigns,
       onlineDevices,
-      deliveredTotal,
-      sentTotal,
+      totalDevices,
+      totalContacts,
+      totalSmsSent,
+      totalSmsDelivered,
+      totalSmsFailed,
+      blacklistCount,
+      unreadInbox,
     ] = await Promise.all([
-      // SMS sent today
       this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          type: 'SMS',
-          status: { in: ['SENT', 'DELIVERED'] },
-          sentAt: { gte: todayStart },
-        },
+        where: { campaign: { userId }, type: 'SMS', status: { in: ['SENT', 'DELIVERED'] }, sentAt: { gte: todayStart } },
       }),
-      // SMS sent this month
       this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          type: 'SMS',
-          status: { in: ['SENT', 'DELIVERED'] },
-          sentAt: { gte: monthStart },
-        },
+        where: { campaign: { userId }, type: 'SMS', status: { in: ['SENT', 'DELIVERED'] }, sentAt: { gte: monthStart } },
       }),
-      // Calls today
       this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          type: 'CALL',
-          status: { in: ['SENT', 'DELIVERED'] },
-          sentAt: { gte: todayStart },
-        },
+        where: { campaign: { userId }, type: 'CALL', status: { in: ['SENT', 'DELIVERED'] }, sentAt: { gte: todayStart } },
       }),
-      // Calls this month
       this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          type: 'CALL',
-          status: { in: ['SENT', 'DELIVERED'] },
-          sentAt: { gte: monthStart },
-        },
+        where: { campaign: { userId }, type: 'CALL', status: { in: ['SENT', 'DELIVERED'] }, sentAt: { gte: monthStart } },
       }),
-      // Active campaigns
-      this.prisma.campaign.count({
-        where: { userId, status: 'RUNNING' },
-      }),
-      // Online devices
-      this.prisma.device.count({
-        where: { userId, isOnline: true },
-      }),
-      // Total delivered
-      this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          status: 'DELIVERED',
-        },
-      }),
-      // Total sent (including delivered)
-      this.prisma.taskLog.count({
-        where: {
-          campaign: { userId },
-          status: { in: ['SENT', 'DELIVERED'] },
-        },
-      }),
+      this.prisma.campaign.count({ where: { userId, status: 'RUNNING' } }),
+      this.prisma.campaign.count({ where: { userId } }),
+      this.prisma.device.count({ where: { userId, isOnline: true } }),
+      this.prisma.device.count({ where: { userId } }),
+      this.prisma.contact.count({ where: { group: { userId } } }),
+      this.prisma.taskLog.count({ where: { campaign: { userId }, status: { in: ['SENT', 'DELIVERED'] } } }),
+      this.prisma.taskLog.count({ where: { campaign: { userId }, status: 'DELIVERED' } }),
+      this.prisma.taskLog.count({ where: { campaign: { userId }, status: 'FAILED' } }),
+      this.prisma.blacklist.count({ where: { userId } }),
+      this.prisma.inboxMessage.count({ where: { isRead: false } }),
     ]);
 
-    const deliveryRate = sentTotal > 0 ? ((deliveredTotal / sentTotal) * 100).toFixed(2) : '0.00';
+    const deliveryRate = totalSmsSent > 0 ? ((totalSmsDelivered / totalSmsSent) * 100) : 0;
 
     return {
       smsSentToday,
@@ -94,8 +64,16 @@ export class AnalyticsService {
       callsToday,
       callsMonth,
       activeCampaigns,
+      totalCampaigns,
       onlineDevices,
-      deliveryRate: parseFloat(deliveryRate),
+      totalDevices,
+      totalContacts,
+      totalSmsSent,
+      totalSmsDelivered,
+      totalSmsFailed,
+      blacklistCount,
+      unreadInbox,
+      deliveryRate: parseFloat(deliveryRate.toFixed(1)),
     };
   }
 
