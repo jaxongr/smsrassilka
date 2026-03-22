@@ -74,6 +74,21 @@ services:
     ports:
       - "8085:80"
 
+  voice-bot:
+    build:
+      context: ./voice-bot
+      dockerfile: Dockerfile
+    container_name: sms-gateway-voice-bot
+    restart: unless-stopped
+    depends_on:
+      - sms-gateway-backend
+    environment:
+      BOT_TOKEN: "8769793226:AAHyCi3OhhvAa1qsNL53BfKJxIi2Z1ATH4w"
+      ADMIN_ID: "5475915736"
+      BACKEND_URL: "http://sms-gateway-backend:3000"
+      ADMIN_EMAIL: "admin@smsgateway.uz"
+      ADMIN_PASSWORD: "admin123"
+
 volumes:
   sms_gateway_pgdata:
   sms_gateway_redis:
