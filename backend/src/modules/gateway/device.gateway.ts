@@ -218,19 +218,14 @@ export class DeviceGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('sim_status')
   async handleSimStatus(
     @ConnectedSocket() client: Socket,
-    @MessageBody()
-    data: Array<{
-      slotIndex: number;
-      operatorName?: string;
-      phoneNumber?: string;
-      isActive: boolean;
-      smsCapable?: boolean;
-      callCapable?: boolean;
-    }>,
+    @MessageBody() rawData: any,
   ) {
     try {
       const deviceId = this.socketDeviceMap.get(client.id);
       if (!deviceId) return;
+
+      // Accept both single object and array
+      const data = Array.isArray(rawData) ? rawData : [rawData];
 
       for (const sim of data) {
         await this.prisma.simCard.upsert({
