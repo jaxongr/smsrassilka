@@ -107,7 +107,7 @@ function UsersPage() {
       }
       updateMut.mutate({ id: editingUser.id, data: updateData });
     } else {
-      createMut.mutate(values as Parameters<typeof usersApi.createUser>[0]);
+      createMut.mutate(values as unknown as Parameters<typeof usersApi.createUser>[0]);
     }
   };
 
