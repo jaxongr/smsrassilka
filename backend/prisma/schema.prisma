@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTH & USERS ============
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role     @default(OPERATOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  campaigns Campaign[]
+  devices   Device[]
+
+  @@index([email])
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+// ============ DEVICES (PHONES) ============
+
+model Device {
+  id             String    @id @default(uuid())
+  name           String
+  deviceToken    String    @unique
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  isOnline       Boolean   @default(false)
+  lastSeenAt     DateTime?
+  batteryLevel   Int?
+  signalStrength Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  simCards SimCard[]
+  taskLogs TaskLog[]
+
+  @@index([userId])
+  @@index([isOnline])
+}
+
+model SimCard {
+  id             String   @id @default(uuid())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  slotIndex      Int
+  operatorName   String?
+  phoneNumber    String?
+  isActive       Boolean  @default(true)
+  smsCapable     Boolean  @default(true)
+  callCapable    Boolean  @default(true)
+  dailySmsCount  Int      @default(0)
+  dailyCallCount Int      @default(0)
+  dailyLimitSms  Int      @default(200)
+  dailyLimitCall Int      @default(100)
+  lastResetAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([deviceId, slotIndex])
+  @@index([deviceId])
+}
+
+// ============ CONTACTS ============
+
+model ContactGroup {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  userId       String
+  contactCount Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  contacts  Contact[]
+  campaigns Campaign[]
+
+  @@index([userId])
+}
+
+model Contact {
+  id            String       @id @default(uuid())
+  phoneNumber   String
+  firstName     String?
+  lastName      String?
+  groupId       String
+  group         ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  metadata      Json?
+  isBlacklisted Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+
+  taskLogs TaskLog[]
+
+  @@index([groupId])
+  @@index([phoneNumber])
+}
+
+// ============ VOICE MESSAGES ============
+
+model VoiceMessage {
+  id        String   @id @default(uuid())
+  name      String
+  fileName  String
+  filePath  String
+  fileSize  Int
+  duration  Int
+  mimeType  String   @default("audio/mp3")
+  userId    String
+  createdAt DateTime @default(now())
+
+  campaigns Campaign[]
+
+  @@index([userId])
+}
+
+// ============ CAMPAIGNS ============
+
+model Campaign {
+  id              String         @id @default(uuid())
+  name            String
+  type            CampaignType
+  status          CampaignStatus @default(DRAFT)
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  messageTemplate String?
+  voiceMessageId  String?
+  voiceMessage    VoiceMessage?  @relation(fields: [voiceMessageId], references: [id])
+  contactGroupId  String
+  contactGroup    ContactGroup   @relation(fields: [contactGroupId], references: [id])
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  deviceIds       String[]
+  intervalMs      Int            @default(3000)
+  simStrategy     SimStrategy    @default(ROUND_ROBIN)
+  totalCount      Int            @default(0)
+  sentCount       Int            @default(0)
+  deliveredCount  Int            @default(0)
+  failedCount     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  taskLogs TaskLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+enum CampaignType {
+  SMS
+  CALL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum SimStrategy {
+  ROUND_ROBIN
+  SIM_1_ONLY
+  SIM_2_ONLY
+  LOAD_BALANCE
+}
+
+// ============ TASK LOGS ============
+
+model TaskLog {
+  id           String       @id @default(uuid())
+  campaignId   String
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId    String
+  contact      Contact      @relation(fields: [contactId], references: [id])
+  deviceId     String?
+  device       Device?      @relation(fields: [deviceId], references: [id])
+  simSlot      Int?
+  type         CampaignType
+  phoneNumber  String
+  messageBody  String?
+  status       TaskStatus   @default(PENDING)
+  errorMessage String?
+  attempts     Int          @default(0)
+  maxAttempts  Int          @default(3)
+  callDuration Int?
+  callAnswered Boolean?
+  scheduledAt  DateTime?
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  failedAt     DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([deviceId])
+  @@index([campaignId, status])
+}
+
+enum TaskStatus {
+  PENDING
+  QUEUED
+  SENT_TO_DEVICE
+  SENT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+// ============ BLACKLIST ============
+
+model Blacklist {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique
+  reason      String?
+  userId      String
+  createdAt   DateTime @default(now())
+
+  @@index([phoneNumber])
+}
+
+// ============ INBOX (Kiruvchi SMS) ============
+
+model InboxMessage {
+  id          String        @id @default(uuid())
+  deviceId    String
+  simSlot     Int?
+  fromNumber  String
+  toNumber    String?
+  body        String
+  receivedAt  DateTime
+  isRead      Boolean       @default(false)
+  repliedAt   DateTime?
+  replyBody   String?
+  createdAt   DateTime      @default(now())
+
+  replies InboxReply[]
+
+  @@index([deviceId])
+  @@index([fromNumber])
+  @@index([isRead])
+  @@index([receivedAt])
+}
+
+model InboxReply {
+  id             String       @id @default(uuid())
+  inboxMessageId String
+  inboxMessage   InboxMessage @relation(fields: [inboxMessageId], references: [id], onDelete: Cascade)
+  body           String
+  status         TaskStatus   @default(PENDING)
+  sentAt         DateTime?
+  deviceId       String?
+  simSlot        Int?
+  createdAt      DateTime     @default(now())
+
+  @@index([inboxMessageId])
+}
+
+// ============ SYSTEM SETTINGS ============
+
+model SystemSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+
+  @@index([key])
+}
