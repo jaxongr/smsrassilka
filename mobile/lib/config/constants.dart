@@ -2,7 +2,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'SMS Gateway';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.0.4';
 
   // Default API URLs (overridden by user config)
   static const String defaultApiUrl = 'https://sms-gateway.example.com';
