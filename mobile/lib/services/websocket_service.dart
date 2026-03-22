@@ -31,8 +31,10 @@ class WebSocketService {
 
     try {
       // Remove trailing slash
-      final baseUrl = _serverUrl!.replaceAll(RegExp(r'/+$'), '');
+      var baseUrl = _serverUrl!.replaceAll(RegExp(r'/+$'), '');
 
+      // Socket.IO connects to base URL, namespace is separate
+      // Server namespace is /ws/device
       _socket = IO.io(
         '$baseUrl/ws/device',
         IO.OptionBuilder()
@@ -42,38 +44,46 @@ class WebSocketService {
             .enableReconnection()
             .setReconnectionDelay(1000)
             .setReconnectionDelayMax(30000)
+            .setReconnectionAttempts(999999)
             .build(),
       );
 
       _socket!.onConnect((_) {
-        debugPrint('Socket.IO connected');
+        debugPrint('Connected to server');
         _connectionState = ConnectionState.connected;
         onConnected?.call();
       });
 
       _socket!.onDisconnect((_) {
-        debugPrint('Socket.IO disconnected');
+        debugPrint('Disconnected from server');
         _connectionState = ConnectionState.reconnecting;
         onDisconnected?.call();
       });
 
       _socket!.onConnectError((error) {
-        debugPrint('Socket.IO connect error: $error');
+        debugPrint('Connection error: $error');
         _connectionState = ConnectionState.reconnecting;
-        onDisconnected?.call();
       });
 
-      _socket!.onError((error) {
-        debugPrint('Socket.IO error: $error');
+      _socket!.onReconnect((_) {
+        debugPrint('Reconnected');
+        _connectionState = ConnectionState.connected;
+        onConnected?.call();
       });
 
-      // Listen for server events
+      _socket!.onReconnectAttempt((_) {
+        _connectionState = ConnectionState.reconnecting;
+      });
+
+      // Server events
       _socket!.on('send_sms', (data) {
-        onMessageReceived?.call('sms:send', Map<String, dynamic>.from(data));
+        debugPrint('Received send_sms task');
+        onMessageReceived?.call('sms:send', _toMap(data));
       });
 
       _socket!.on('make_call', (data) {
-        onMessageReceived?.call('call:make', Map<String, dynamic>.from(data));
+        debugPrint('Received make_call task');
+        onMessageReceived?.call('call:make', _toMap(data));
       });
 
       _socket!.on('ping', (_) {
@@ -81,28 +91,34 @@ class WebSocketService {
       });
 
       _socket!.on('update_config', (data) {
-        onMessageReceived?.call('config:update', Map<String, dynamic>.from(data));
+        onMessageReceived?.call('config:update', _toMap(data));
       });
 
       _socket!.on('cancel_task', (data) {
-        onMessageReceived?.call('task:cancel', Map<String, dynamic>.from(data));
+        onMessageReceived?.call('task:cancel', _toMap(data));
       });
 
       _socket!.connect();
+      debugPrint('Connecting to: $baseUrl/ws/device');
     } catch (e) {
-      debugPrint('Socket.IO connection failed: $e');
+      debugPrint('Connection failed: $e');
       _connectionState = ConnectionState.disconnected;
       onDisconnected?.call();
     }
   }
 
+  Map<String, dynamic> _toMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return {};
+  }
+
   void sendMessage(String event, Map<String, dynamic> data) {
     if (_socket == null || !_socket!.connected) return;
-
     try {
       _socket!.emit(event, data);
     } catch (e) {
-      debugPrint('Failed to send message: $e');
+      debugPrint('Send failed: $e');
     }
   }
 
