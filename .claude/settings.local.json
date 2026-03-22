@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx prisma:*)",
       "Bash(npx tsc:*)",
-      "Bash(./node_modules/.bin/tsc --noEmit --pretty)"
+      "Bash(./node_modules/.bin/tsc --noEmit --pretty)",
+      "Bash(ssh:*)"
     ]
   }
 }
