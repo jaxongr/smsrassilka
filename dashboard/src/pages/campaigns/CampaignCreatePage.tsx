@@ -62,13 +62,12 @@ function CampaignCreatePage() {
     const payload = {
       name: values.name as string,
       type: values.type as string,
-      message: values.message as string | undefined,
+      messageTemplate: values.message as string | undefined,
       voiceMessageId: values.voiceMessageId as string | undefined,
       contactGroupId: values.contactGroupId as string,
       deviceIds: values.deviceIds as string[],
       simStrategy: values.simStrategy as string,
       intervalMs: ((values.intervalSeconds as number) || 1) * 1000,
-      dailyLimit: values.dailyLimit as number | undefined,
       scheduledAt: values.isScheduled && values.scheduledAt
         ? (values.scheduledAt as { toISOString: () => string }).toISOString()
         : undefined,
