@@ -1,19 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import '../config/constants.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 enum ConnectionState { disconnected, connecting, connected, reconnecting }
 
 typedef MessageHandler = void Function(String event, Map<String, dynamic> data);
 
 class WebSocketService {
-  WebSocketChannel? _channel;
+  IO.Socket? _socket;
   ConnectionState _connectionState = ConnectionState.disconnected;
-  Timer? _pingTimer;
-  Timer? _reconnectTimer;
-  int _reconnectAttempt = 0;
   String? _serverUrl;
   String? _deviceToken;
   MessageHandler? onMessageReceived;
@@ -27,7 +22,6 @@ class WebSocketService {
     _serverUrl = serverUrl;
     _deviceToken = deviceToken;
     _connectionState = ConnectionState.connecting;
-    _reconnectAttempt = 0;
 
     await _establishConnection();
   }
@@ -36,122 +30,89 @@ class WebSocketService {
     if (_serverUrl == null || _deviceToken == null) return;
 
     try {
-      final wsUrl = _serverUrl!
-          .replaceFirst('https://', 'wss://')
-          .replaceFirst('http://', 'ws://');
-      final uri = Uri.parse('$wsUrl/ws/device?token=$_deviceToken');
+      // Remove trailing slash
+      final baseUrl = _serverUrl!.replaceAll(RegExp(r'/+$'), '');
 
-      _channel = WebSocketChannel.connect(uri);
-
-      await _channel!.ready;
-
-      _connectionState = ConnectionState.connected;
-      _reconnectAttempt = 0;
-      onConnected?.call();
-
-      _startPing();
-
-      _channel!.stream.listen(
-        _handleMessage,
-        onError: (error) {
-          debugPrint('WebSocket error: $error');
-          _handleDisconnect();
-        },
-        onDone: () {
-          debugPrint('WebSocket connection closed');
-          _handleDisconnect();
-        },
-        cancelOnError: false,
+      _socket = IO.io(
+        '$baseUrl/ws/device',
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .setQuery({'token': _deviceToken!})
+            .enableAutoConnect()
+            .enableReconnection()
+            .setReconnectionDelay(1000)
+            .setReconnectionDelayMax(30000)
+            .build(),
       );
+
+      _socket!.onConnect((_) {
+        debugPrint('Socket.IO connected');
+        _connectionState = ConnectionState.connected;
+        onConnected?.call();
+      });
+
+      _socket!.onDisconnect((_) {
+        debugPrint('Socket.IO disconnected');
+        _connectionState = ConnectionState.reconnecting;
+        onDisconnected?.call();
+      });
+
+      _socket!.onConnectError((error) {
+        debugPrint('Socket.IO connect error: $error');
+        _connectionState = ConnectionState.reconnecting;
+        onDisconnected?.call();
+      });
+
+      _socket!.onError((error) {
+        debugPrint('Socket.IO error: $error');
+      });
+
+      // Listen for server events
+      _socket!.on('send_sms', (data) {
+        onMessageReceived?.call('sms:send', Map<String, dynamic>.from(data));
+      });
+
+      _socket!.on('make_call', (data) {
+        onMessageReceived?.call('call:make', Map<String, dynamic>.from(data));
+      });
+
+      _socket!.on('ping', (_) {
+        _socket!.emit('pong', {});
+      });
+
+      _socket!.on('update_config', (data) {
+        onMessageReceived?.call('config:update', Map<String, dynamic>.from(data));
+      });
+
+      _socket!.on('cancel_task', (data) {
+        onMessageReceived?.call('task:cancel', Map<String, dynamic>.from(data));
+      });
+
+      _socket!.connect();
     } catch (e) {
-      debugPrint('WebSocket connection failed: $e');
-      _handleDisconnect();
+      debugPrint('Socket.IO connection failed: $e');
+      _connectionState = ConnectionState.disconnected;
+      onDisconnected?.call();
     }
-  }
-
-  void _handleMessage(dynamic rawMessage) {
-    try {
-      final data = jsonDecode(rawMessage as String) as Map<String, dynamic>;
-      final event = data['event'] as String? ?? 'unknown';
-      final payload = data['data'] as Map<String, dynamic>? ?? {};
-
-      if (event == 'pong') return;
-
-      onMessageReceived?.call(event, payload);
-    } catch (e) {
-      debugPrint('Failed to parse WebSocket message: $e');
-    }
-  }
-
-  void _handleDisconnect() {
-    _connectionState = ConnectionState.reconnecting;
-    _stopPing();
-    onDisconnected?.call();
-    _scheduleReconnect();
-  }
-
-  void _scheduleReconnect() {
-    if (_serverUrl == null || _deviceToken == null) return;
-
-    _reconnectTimer?.cancel();
-
-    final delay = _calculateReconnectDelay();
-    debugPrint('Reconnecting in ${delay}ms (attempt $_reconnectAttempt)');
-
-    _reconnectTimer = Timer(Duration(milliseconds: delay), () {
-      _reconnectAttempt++;
-      _connectionState = ConnectionState.reconnecting;
-      _establishConnection();
-    });
-  }
-
-  int _calculateReconnectDelay() {
-    final baseDelay = AppConstants.wsReconnectBaseDelay;
-    final maxDelay = AppConstants.wsReconnectMaxDelay;
-    final delay = baseDelay * (1 << _reconnectAttempt);
-    return delay > maxDelay ? maxDelay : delay;
-  }
-
-  void _startPing() {
-    _pingTimer?.cancel();
-    _pingTimer = Timer.periodic(
-      const Duration(seconds: AppConstants.wsPingInterval),
-      (_) {
-        sendMessage('ping', {});
-      },
-    );
-  }
-
-  void _stopPing() {
-    _pingTimer?.cancel();
-    _pingTimer = null;
   }
 
   void sendMessage(String event, Map<String, dynamic> data) {
-    if (_channel == null || !isConnected) return;
+    if (_socket == null || !_socket!.connected) return;
 
     try {
-      final message = jsonEncode({
-        'event': event,
-        'data': data,
-      });
-      _channel!.sink.add(message);
+      _socket!.emit(event, data);
     } catch (e) {
-      debugPrint('Failed to send WebSocket message: $e');
+      debugPrint('Failed to send message: $e');
     }
   }
 
   Future<void> disconnect() async {
-    _serverUrl = null;
-    _deviceToken = null;
     _connectionState = ConnectionState.disconnected;
-    _reconnectTimer?.cancel();
-    _stopPing();
-
     try {
-      await _channel?.sink.close();
+      _socket?.disconnect();
+      _socket?.dispose();
     } catch (_) {}
-    _channel = null;
+    _socket = null;
   }
 
   void dispose() {
