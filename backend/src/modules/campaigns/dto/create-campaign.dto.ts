@@ -46,11 +46,11 @@ export class CreateCampaignDto {
   @IsDateString()
   scheduledAt?: string;
 
-  @ApiPropertyOptional({ description: 'Interval between tasks in ms', default: 3000 })
+  @ApiPropertyOptional({ description: 'Interval between tasks in ms per device (1000=60 SMS/min/device)', default: 1000 })
   @IsOptional()
   @IsInt()
-  @Min(1000)
-  intervalMs?: number = 3000;
+  @Min(500)
+  intervalMs?: number = 1000;
 
   @ApiPropertyOptional({ enum: SimStrategy, default: SimStrategy.ROUND_ROBIN })
   @IsOptional()

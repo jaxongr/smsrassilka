@@ -50,33 +50,7 @@ export class TaskQueueService {
     });
 
     if (existingPendingCount > 0) {
-      // Resume: re-queue existing pending tasks
-      const pendingTasks = await this.prisma.taskLog.findMany({
-        where: { campaignId, status: TaskStatus.PENDING },
-        select: { id: true },
-      });
-
-      for (let i = 0; i < pendingTasks.length; i += BATCH_SIZE) {
-        const batch = pendingTasks.slice(i, i + BATCH_SIZE);
-        const jobs = batch.map((task, idx) => ({
-          data: { taskId: task.id, campaignId },
-          opts: {
-            delay: (i + idx) * campaign.intervalMs,
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 5000 },
-            removeOnComplete: true,
-          },
-        }));
-
-        await queue.addBulk(jobs);
-
-        await this.prisma.taskLog.updateMany({
-          where: { id: { in: batch.map((t) => t.id) } },
-          data: { status: TaskStatus.QUEUED },
-        });
-      }
-
-      this.logger.log(`Re-queued ${pendingTasks.length} pending tasks for campaign ${campaignId}`);
+      await this.requeuePendingTasks(campaignId, campaign, queue);
       return;
     }
 
@@ -86,19 +60,15 @@ export class TaskQueueService {
     for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
       const batch = contacts.slice(i, i + BATCH_SIZE);
 
-      // Build message body with template variables
       const taskData = batch.map((contact) => {
         let messageBody = campaign.messageTemplate ?? '';
         if (contact.firstName) {
-          messageBody = messageBody.replace(/\{\{firstName\}\}/g, contact.firstName);
+          messageBody = messageBody.replace(/\{firstName\}/g, contact.firstName);
         }
         if (contact.lastName) {
-          messageBody = messageBody.replace(/\{\{lastName\}\}/g, contact.lastName);
+          messageBody = messageBody.replace(/\{lastName\}/g, contact.lastName);
         }
-        messageBody = messageBody.replace(
-          /\{\{phoneNumber\}\}/g,
-          contact.phoneNumber,
-        );
+        messageBody = messageBody.replace(/\{phoneNumber\}/g, contact.phoneNumber);
 
         return {
           campaignId,
@@ -112,34 +82,56 @@ export class TaskQueueService {
       });
 
       await this.prisma.taskLog.createMany({ data: taskData });
-
       totalCreated += batch.length;
     }
 
-    // Update campaign total count
     await this.prisma.campaign.update({
       where: { id: campaignId },
       data: { totalCount: totalCreated },
     });
 
-    // Now fetch the created task logs and add them to the queue
+    // Get online devices for this campaign
+    const onlineDeviceCount = await this.prisma.device.count({
+      where: { id: { in: campaign.deviceIds }, isOnline: true },
+    });
+    const deviceCount = Math.max(onlineDeviceCount, 1);
+
+    // Calculate per-device interval
+    // With intervalMs=1000 and 3 devices: each device gets a task every 1000ms
+    // Total throughput: 3 devices * 60 tasks/min = 180 SMS/min
+    const perDeviceInterval = campaign.intervalMs;
+
+    // Fetch all tasks and distribute across devices with staggered delays
     const allTasks = await this.prisma.taskLog.findMany({
       where: { campaignId, status: TaskStatus.PENDING },
       select: { id: true },
       orderBy: { createdAt: 'asc' },
     });
 
+    // Distribute tasks round-robin across device "slots"
+    // Each device slot gets tasks with delay = slotTaskIndex * perDeviceInterval
+    // Different slots are staggered by perDeviceInterval / deviceCount
+    const stagger = Math.floor(perDeviceInterval / deviceCount);
+
     for (let i = 0; i < allTasks.length; i += BATCH_SIZE) {
       const batch = allTasks.slice(i, i + BATCH_SIZE);
-      const jobs = batch.map((task, idx) => ({
-        data: { taskId: task.id, campaignId },
-        opts: {
-          delay: (i + idx) * campaign.intervalMs,
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 5000 },
-          removeOnComplete: true,
-        },
-      }));
+      const jobs = batch.map((task, batchIdx) => {
+        const globalIdx = i + batchIdx;
+        const deviceSlot = globalIdx % deviceCount;
+        const taskInSlot = Math.floor(globalIdx / deviceCount);
+        // Stagger: device 0 starts at 0ms, device 1 at stagger ms, etc.
+        const delay = (taskInSlot * perDeviceInterval) + (deviceSlot * stagger);
+
+        return {
+          data: { taskId: task.id, campaignId },
+          opts: {
+            delay,
+            attempts: 3,
+            backoff: { type: 'exponential' as const, delay: 5000 },
+            removeOnComplete: true,
+          },
+        };
+      });
 
       await queue.addBulk(jobs);
 
@@ -150,8 +142,50 @@ export class TaskQueueService {
     }
 
     this.logger.log(
-      `Initialized campaign ${campaignId}: ${totalCreated} tasks created and queued`,
+      `Campaign ${campaignId}: ${totalCreated} tasks queued across ${deviceCount} device(s), interval=${perDeviceInterval}ms, stagger=${stagger}ms`,
     );
+  }
+
+  private async requeuePendingTasks(campaignId: string, campaign: any, queue: Queue) {
+    const pendingTasks = await this.prisma.taskLog.findMany({
+      where: { campaignId, status: TaskStatus.PENDING },
+      select: { id: true },
+    });
+
+    const onlineDeviceCount = await this.prisma.device.count({
+      where: { id: { in: campaign.deviceIds }, isOnline: true },
+    });
+    const deviceCount = Math.max(onlineDeviceCount, 1);
+    const stagger = Math.floor(campaign.intervalMs / deviceCount);
+
+    for (let i = 0; i < pendingTasks.length; i += BATCH_SIZE) {
+      const batch = pendingTasks.slice(i, i + BATCH_SIZE);
+      const jobs = batch.map((task, batchIdx) => {
+        const globalIdx = i + batchIdx;
+        const deviceSlot = globalIdx % deviceCount;
+        const taskInSlot = Math.floor(globalIdx / deviceCount);
+        const delay = (taskInSlot * campaign.intervalMs) + (deviceSlot * stagger);
+
+        return {
+          data: { taskId: task.id, campaignId },
+          opts: {
+            delay,
+            attempts: 3,
+            backoff: { type: 'exponential' as const, delay: 5000 },
+            removeOnComplete: true,
+          },
+        };
+      });
+
+      await queue.addBulk(jobs);
+
+      await this.prisma.taskLog.updateMany({
+        where: { id: { in: batch.map((t) => t.id) } },
+        data: { status: TaskStatus.QUEUED },
+      });
+    }
+
+    this.logger.log(`Re-queued ${pendingTasks.length} pending tasks for campaign ${campaignId}`);
   }
 
   async processTask(taskId: string, campaignId: string): Promise<void> {
@@ -168,15 +202,12 @@ export class TaskQueueService {
       return;
     }
 
-    // Check if campaign is still running
     if (task.campaign.status !== 'RUNNING') {
-      this.logger.log(`Campaign ${campaignId} is not running, skipping task ${taskId}`);
+      this.logger.log(`Campaign ${campaignId} not running, skipping task ${taskId}`);
       return;
     }
 
-    // Check if task is already processed
     if (task.status !== TaskStatus.QUEUED) {
-      this.logger.log(`Task ${taskId} is not in QUEUED status (${task.status}), skipping`);
       return;
     }
 
@@ -184,12 +215,11 @@ export class TaskQueueService {
     const assignment = await this.findAvailableDevice(task.campaign);
 
     if (!assignment) {
-      this.logger.warn(`No available device for task ${taskId}, re-queuing`);
-      // Re-queue with delay
+      this.logger.warn(`No available device for task ${taskId}, re-queuing in 5s`);
       const queue = task.type === CampaignType.SMS ? this.smsQueue : this.callQueue;
       await queue.add(
         { taskId, campaignId },
-        { delay: 10000, attempts: 3, removeOnComplete: true },
+        { delay: 5000, attempts: 3, removeOnComplete: true },
       );
       return;
     }
@@ -218,7 +248,6 @@ export class TaskQueueService {
     const sent = await this.deviceGateway.sendTask(assignment.deviceId, taskPayload);
 
     if (!sent) {
-      // Device not connected, set back to QUEUED and retry
       await this.prisma.taskLog.update({
         where: { id: taskId },
         data: { status: TaskStatus.QUEUED, deviceId: null, simSlot: null },
@@ -226,7 +255,7 @@ export class TaskQueueService {
       const queue = task.type === CampaignType.SMS ? this.smsQueue : this.callQueue;
       await queue.add(
         { taskId, campaignId },
-        { delay: 15000, attempts: 3, removeOnComplete: true },
+        { delay: 5000, attempts: 3, removeOnComplete: true },
       );
     }
   }
@@ -249,9 +278,7 @@ export class TaskQueueService {
       return;
     }
 
-    const updateData: any = {
-      status: result.status,
-    };
+    const updateData: any = { status: result.status };
 
     if (result.status === TaskStatus.SENT || result.status === TaskStatus.DELIVERED) {
       updateData.sentAt = new Date();
@@ -265,13 +292,8 @@ export class TaskQueueService {
       updateData.errorMessage = result.errorMessage ?? 'Unknown error';
     }
 
-    if (result.callDuration !== undefined) {
-      updateData.callDuration = result.callDuration;
-    }
-
-    if (result.callAnswered !== undefined) {
-      updateData.callAnswered = result.callAnswered;
-    }
+    if (result.callDuration !== undefined) updateData.callDuration = result.callDuration;
+    if (result.callAnswered !== undefined) updateData.callAnswered = result.callAnswered;
 
     await this.prisma.taskLog.update({
       where: { id: taskId },
@@ -311,54 +333,34 @@ export class TaskQueueService {
   async retryFailedTask(taskId: string): Promise<void> {
     const task = await this.prisma.taskLog.findUnique({ where: { id: taskId } });
 
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
-    if (task.status !== TaskStatus.FAILED) {
-      return;
-    }
-
+    if (!task || task.status !== TaskStatus.FAILED) return;
     if (task.attempts >= task.maxAttempts) {
-      this.logger.warn(`Task ${taskId} has exceeded max attempts (${task.maxAttempts})`);
+      this.logger.warn(`Task ${taskId} exceeded max attempts (${task.maxAttempts})`);
       return;
     }
 
     await this.prisma.taskLog.update({
       where: { id: taskId },
-      data: {
-        status: TaskStatus.QUEUED,
-        errorMessage: null,
-        failedAt: null,
-        deviceId: null,
-        simSlot: null,
-      },
+      data: { status: TaskStatus.QUEUED, errorMessage: null, failedAt: null, deviceId: null, simSlot: null },
     });
 
     const queue = task.type === CampaignType.SMS ? this.smsQueue : this.callQueue;
     await queue.add(
       { taskId, campaignId: task.campaignId },
-      { delay: 5000, attempts: 1, removeOnComplete: true },
+      { delay: 3000, attempts: 1, removeOnComplete: true },
     );
-
-    this.logger.log(`Retrying failed task ${taskId}`);
   }
 
   async cancelCampaignTasks(campaignId: string): Promise<void> {
     await this.prisma.taskLog.updateMany({
-      where: {
-        campaignId,
-        status: { in: [TaskStatus.PENDING, TaskStatus.QUEUED] },
-      },
+      where: { campaignId, status: { in: [TaskStatus.PENDING, TaskStatus.QUEUED] } },
       data: { status: TaskStatus.CANCELLED },
     });
 
-    // Clean queues for this campaign
     const smsJobs = await this.smsQueue.getJobs(['waiting', 'delayed']);
     const callJobs = await this.callQueue.getJobs(['waiting', 'delayed']);
 
-    const allJobs = [...smsJobs, ...callJobs];
-    for (const job of allJobs) {
+    for (const job of [...smsJobs, ...callJobs]) {
       if (job.data.campaignId === campaignId) {
         await job.remove();
       }
@@ -385,39 +387,52 @@ export class TaskQueueService {
       },
     });
 
-    if (onlineDevices.length === 0) {
-      return null;
-    }
+    if (onlineDevices.length === 0) return null;
 
-    // Apply SIM strategy
+    // Find device+sim with lowest usage (LOAD_BALANCE logic)
+    let bestDevice: string | null = null;
+    let bestSim: number | null = null;
+    let lowestCount = Infinity;
+
     for (const device of onlineDevices) {
       for (const sim of device.simCards) {
-        const isUnderLimit =
-          campaign.type === CampaignType.SMS
-            ? sim.dailySmsCount < sim.dailyLimitSms
-            : sim.dailyCallCount < sim.dailyLimitCall;
+        const count = campaign.type === CampaignType.SMS
+          ? sim.dailySmsCount
+          : sim.dailyCallCount;
+        const limit = campaign.type === CampaignType.SMS
+          ? sim.dailyLimitSms
+          : sim.dailyLimitCall;
 
-        if (isUnderLimit) {
-          // Apply strategy filter
-          if (campaign.simStrategy === 'SIM_1_ONLY' && sim.slotIndex !== 0) continue;
-          if (campaign.simStrategy === 'SIM_2_ONLY' && sim.slotIndex !== 1) continue;
+        if (count >= limit) continue;
 
-          // Increment daily counter
-          await this.prisma.simCard.update({
-            where: { id: sim.id },
-            data: {
-              ...(campaign.type === CampaignType.SMS
-                ? { dailySmsCount: { increment: 1 } }
-                : { dailyCallCount: { increment: 1 } }),
-            },
-          });
+        // Apply SIM strategy filter
+        if (campaign.simStrategy === 'SIM_1_ONLY' && sim.slotIndex !== 0) continue;
+        if (campaign.simStrategy === 'SIM_2_ONLY' && sim.slotIndex !== 1) continue;
 
-          return { deviceId: device.id, simSlot: sim.slotIndex };
+        if (count < lowestCount) {
+          lowestCount = count;
+          bestDevice = device.id;
+          bestSim = sim.slotIndex;
         }
       }
     }
 
-    return null;
+    if (!bestDevice || bestSim === null) return null;
+
+    // Increment daily counter
+    await this.prisma.simCard.updateMany({
+      where: {
+        deviceId: bestDevice,
+        slotIndex: bestSim,
+      },
+      data: {
+        ...(campaign.type === CampaignType.SMS
+          ? { dailySmsCount: { increment: 1 } }
+          : { dailyCallCount: { increment: 1 } }),
+      },
+    });
+
+    return { deviceId: bestDevice, simSlot: bestSim };
   }
 
   private async getCampaignQuickStats(campaignId: string) {
@@ -431,10 +446,7 @@ export class TaskQueueService {
     ]);
 
     const statusMap = stats.reduce(
-      (acc, s) => {
-        acc[s.status] = s._count.status;
-        return acc;
-      },
+      (acc, s) => { acc[s.status] = s._count.status; return acc; },
       {} as Record<string, number>,
     );
 

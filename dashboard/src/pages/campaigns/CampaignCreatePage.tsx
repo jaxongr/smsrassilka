@@ -67,7 +67,7 @@ function CampaignCreatePage() {
       contactGroupId: values.contactGroupId as string,
       deviceIds: values.deviceIds as string[],
       simStrategy: values.simStrategy as string,
-      intervalMs: ((values.intervalSeconds as number) || 5) * 1000,
+      intervalMs: ((values.intervalSeconds as number) || 1) * 1000,
       dailyLimit: values.dailyLimit as number | undefined,
       scheduledAt: values.isScheduled && values.scheduledAt
         ? (values.scheduledAt as { toISOString: () => string }).toISOString()
@@ -96,7 +96,7 @@ function CampaignCreatePage() {
           initialValues={{
             type: CampaignType.SMS,
             simStrategy: SimStrategy.ROUND_ROBIN,
-            intervalSeconds: 5,
+            intervalSeconds: 1,
           }}
         >
           <Row gutter={16}>
