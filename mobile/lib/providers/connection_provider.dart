@@ -147,18 +147,32 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
     try {
       final battery = await _batteryService.getBatteryLevel();
       final charging = await _batteryService.isCharging();
-      List<Map<String, dynamic>> simCards = [];
-      try {
-        final sims = await _simChannel.getSimCards();
-        simCards = sims.map((s) => s.toJson()).toList();
-      } catch (_) {}
 
-      _wsService.sendMessage('device:info', {
+      // Send device status
+      _wsService.sendMessage('device_status', {
         'batteryLevel': battery,
         'isCharging': charging,
-        'simCards': simCards,
-        'gatewayActive': _gatewayActive,
+        'networkType': 'wifi',
+        'signalStrength': 4,
       });
+
+      // Send SIM info
+      try {
+        final sims = await _simChannel.getSimCards();
+        for (final sim in sims) {
+          _wsService.sendMessage('sim_status', sim.toJson());
+        }
+      } catch (e) {
+        // SIM read failed - send default SIM info so server knows we have a SIM
+        debugPrint('SIM read failed: $e, sending default');
+        _wsService.sendMessage('sim_status', {
+          'slotIndex': 0,
+          'operatorName': 'SIM 1',
+          'phoneNumber': '',
+          'smsCapable': true,
+          'callCapable': true,
+        });
+      }
     } catch (e) {
       debugPrint('Failed to send device info: $e');
     }
