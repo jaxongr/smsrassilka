@@ -38,10 +38,15 @@ export class DeviceGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      const deviceToken = client.handshake.query.token as string;
+      // Try query param first, then auth header, then handshake auth
+      const deviceToken = (client.handshake.query.token as string)
+        || (client.handshake.auth?.token as string)
+        || (client.handshake.headers?.['x-device-token'] as string);
+
+      this.logger.log(`Connection attempt - query: ${!!client.handshake.query.token}, auth: ${!!client.handshake.auth?.token}, headers: ${JSON.stringify(Object.keys(client.handshake.headers || {}))}`);
 
       if (!deviceToken) {
-        this.logger.warn(`Device connection rejected: no token provided`);
+        this.logger.warn(`Device connection rejected: no token provided. Query keys: ${Object.keys(client.handshake.query)}`);
         client.disconnect();
         return;
       }

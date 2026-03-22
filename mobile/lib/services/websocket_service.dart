@@ -40,6 +40,8 @@ class WebSocketService {
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .setQuery({'token': _deviceToken!})
+            .setAuth({'token': _deviceToken!})
+            .setExtraHeaders({'x-device-token': _deviceToken!})
             .enableAutoConnect()
             .enableReconnection()
             .setReconnectionDelay(1000)
