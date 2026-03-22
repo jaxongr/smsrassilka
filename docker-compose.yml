@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: sms_gateway
       POSTGRES_USER: sms_gateway_user
-      POSTGRES_PASSWORD: SmsGw2024SecurePass!
+      POSTGRES_PASSWORD: SmsGw2024SecurePass
     volumes:
       - sms_gateway_pgdata:/var/lib/postgresql/data
     ports:
@@ -46,7 +46,7 @@ services:
       sms-gateway-redis:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://sms_gateway_user:SmsGw2024SecurePass!@sms-gateway-postgres:5432/sms_gateway?schema=public"
+      DATABASE_URL: "postgresql://sms_gateway_user:SmsGw2024SecurePass@sms-gateway-postgres:5432/sms_gateway?schema=public"
       REDIS_HOST: sms-gateway-redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
