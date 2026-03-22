@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  sms-gateway-postgres:
+    image: postgres:16-alpine
+    container_name: sms-gateway-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sms_gateway
+      POSTGRES_USER: sms_gateway_user
+      POSTGRES_PASSWORD: SmsGw2024SecurePass!
+    volumes:
+      - sms_gateway_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sms_gateway_user -d sms_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sms-gateway-redis:
+    image: redis:7-alpine
+    container_name: sms-gateway-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - sms_gateway_redis:/data
+    ports:
+      - "6383:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sms-gateway-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sms-gateway-backend
+    restart: unless-stopped
+    depends_on:
+      sms-gateway-postgres:
+        condition: service_healthy
+      sms-gateway-redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://sms_gateway_user:SmsGw2024SecurePass!@sms-gateway-postgres:5432/sms_gateway?schema=public"
+      REDIS_HOST: sms-gateway-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      JWT_ACCESS_SECRET: "sms-gw-access-j8k2m4n6p8r0t2v4x6z8"
+      JWT_REFRESH_SECRET: "sms-gw-refresh-a1b3c5d7e9f1g3h5j7k9"
+      JWT_ACCESS_EXPIRATION: "15m"
+      JWT_REFRESH_EXPIRATION: "7d"
+      PORT: 3000
+      NODE_ENV: production
+      UPLOAD_DIR: ./uploads
+      MAX_FILE_SIZE: 10485760
+    volumes:
+      - sms_gateway_uploads:/app/uploads
+    ports:
+      - "3008:3000"
+
+  sms-gateway-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: sms-gateway-dashboard
+    restart: unless-stopped
+    depends_on:
+      - sms-gateway-backend
+    ports:
+      - "8085:80"
+
+volumes:
+  sms_gateway_pgdata:
+  sms_gateway_redis:
+  sms_gateway_uploads:

@@ -12,6 +12,15 @@ import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { AppDownloadModule } from './modules/app-download/app-download.module';
+import { DevicesModule } from './modules/devices/devices.module';
+import { ContactsModule } from './modules/contacts/contacts.module';
+import { CampaignsModule } from './modules/campaigns/campaigns.module';
+import { VoiceMessagesModule } from './modules/voice-messages/voice-messages.module';
+import { TaskQueueModule } from './modules/task-queue/task-queue.module';
+import { GatewayModule } from './modules/gateway/gateway.module';
+import { BlacklistModule } from './modules/blacklist/blacklist.module';
+import { InboxModule } from './modules/inbox/inbox.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -39,20 +48,18 @@ import { AppDownloadModule } from './modules/app-download/app-download.module';
     RedisModule,
     StorageModule,
     HealthModule,
-
-    // Feature modules:
     AuthModule,
     UsersModule,
     AppDownloadModule,
-    // DevicesModule,
-    // ContactsModule,
-    // CampaignsModule,
-    // VoiceMessagesModule,
-    // TaskQueueModule,
-    // GatewayModule,
-    // BlacklistModule,
-    // InboxModule,
-    // AnalyticsModule,
+    DevicesModule,
+    ContactsModule,
+    CampaignsModule,
+    VoiceMessagesModule,
+    TaskQueueModule,
+    GatewayModule,
+    BlacklistModule,
+    InboxModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}
