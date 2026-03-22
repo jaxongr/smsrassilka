@@ -16,8 +16,7 @@ class AudioService {
 
   Future<String> downloadAndCache(String url, String id) async {
     final cacheDir = await _getCacheDir();
-    final extension = url.split('.').last.split('?').first;
-    final filePath = '$cacheDir/$id.$extension';
+    final filePath = '$cacheDir/$id.mp3';
     final file = File(filePath);
 
     if (await file.exists()) {

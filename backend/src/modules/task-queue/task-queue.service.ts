@@ -235,6 +235,12 @@ export class TaskQueueService {
       },
     });
 
+    // Build voice file download URL for call campaigns
+    let voiceFileUrl: string | null = null;
+    if (task.type === CampaignType.CALL && task.campaign.voiceMessageId) {
+      voiceFileUrl = `/api/voice-messages/${task.campaign.voiceMessageId}/download`;
+    }
+
     // Send to device via WebSocket
     const taskPayload = {
       taskId,
@@ -243,6 +249,7 @@ export class TaskQueueService {
       messageBody: task.messageBody,
       simSlot: assignment.simSlot,
       voiceMessageId: task.campaign.voiceMessageId,
+      voiceFileUrl,
     };
 
     const sent = await this.deviceGateway.sendTask(assignment.deviceId, taskPayload);

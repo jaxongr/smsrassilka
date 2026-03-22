@@ -122,7 +122,7 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
       timestamp: DateTime.now(),
     ));
 
-    // Build voice file URL from voiceMessageId
+    // Build voice file URL and download before calling
     String? voiceUrl = task.voiceFileUrl;
     if (voiceUrl == null || voiceUrl.isEmpty) {
       final voiceId = data['voiceMessageId'] as String?;
@@ -132,16 +132,27 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
       }
     }
 
-    // Download voice file if provided
+    // Download voice file BEFORE making call
+    String? localVoicePath;
     if (voiceUrl != null && voiceUrl.isNotEmpty) {
       try {
-        await _audioService.downloadAndCache(voiceUrl, task.taskId);
+        final fullUrl = voiceUrl.startsWith('http') ? voiceUrl : '${ref.read(settingsProvider).serverUrl}$voiceUrl';
+        localVoicePath = await _audioService.downloadAndCache(fullUrl, task.taskId);
+        debugPrint('Voice file downloaded: $localVoicePath');
       } catch (e) {
         debugPrint('Failed to download voice file: $e');
       }
     }
 
-    final result = await _callService.makeCall(task);
+    // Make call with local voice file path
+    final callTask = CallTask(
+      taskId: task.taskId,
+      phoneNumber: task.phoneNumber,
+      voiceFileUrl: localVoicePath,
+      simSlot: task.simSlot,
+      maxDurationSec: task.maxDurationSec,
+    );
+    final result = await _callService.makeCall(callTask);
     _wsService.sendMessage('task_result', result.toJson());
 
     final statsNotifier = ref.read(statsProvider.notifier);
