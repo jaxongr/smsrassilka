@@ -100,7 +100,7 @@ function DevicesPage() {
       d.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const serverUrl = window.location.origin;
+  const serverUrl = window.location.origin.replace(':8086', ':3008').replace(':8085', ':3008');
   const qrData = newDevice
     ? JSON.stringify({
         server: serverUrl,
