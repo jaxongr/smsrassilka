@@ -88,7 +88,7 @@ function ContactsPage() {
     },
   });
 
-  const groups: ContactGroup[] = data?.data?.data || [];
+  const groups: ContactGroup[] = data?.data || [];
 
   const openEdit = (group: ContactGroup, e: React.MouseEvent) => {
     e.stopPropagation();

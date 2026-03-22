@@ -48,8 +48,8 @@ function DashboardPage() {
     queryFn: () => analyticsApi.getDailyUsage(14),
   });
 
-  const stats = statsData?.data?.data;
-  const dailyUsage = usageData?.data?.data || [];
+  const stats = statsData?.data;
+  const dailyUsage = usageData?.data || [];
 
   if (statsLoading) {
     return (

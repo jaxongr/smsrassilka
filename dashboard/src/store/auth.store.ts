@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true });
     try {
       const response = await authApi.login(email, password);
-      const { user, accessToken } = response.data.data;
+      const { user, accessToken } = response.data;
       localStorage.setItem('token', accessToken);
       localStorage.setItem('user', JSON.stringify(user));
       set({

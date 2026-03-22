@@ -63,8 +63,8 @@ function ContactGroupDetailPage() {
   const importMutation = useMutation({
     mutationFn: (file: File) => contactsApi.importContacts(id!, file),
     onSuccess: (res) => {
-      const d = res.data.data;
-      message.success(`${d.imported} ta import qilindi, ${d.duplicates} ta dublikat`);
+      const d = res.data;
+      message.success(`${d.imported} ta import qilindi, ${d.total - d.imported} ta dublikat`);
       setImportOpen(false);
       queryClient.invalidateQueries({ queryKey: ['group-contacts', id] });
     },
@@ -79,9 +79,9 @@ function ContactGroupDetailPage() {
     },
   });
 
-  const group = groupData?.data?.data;
+  const group = groupData?.data;
   const contacts = contactsData?.data?.data || [];
-  const meta = contactsData?.data?.meta;
+  const meta = contactsData?.data;
 
   const columns = [
     {

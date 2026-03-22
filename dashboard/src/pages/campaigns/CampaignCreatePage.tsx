@@ -49,14 +49,14 @@ function CampaignCreatePage() {
     mutationFn: campaignsApi.createCampaign,
     onSuccess: (res) => {
       message.success('Kampaniya yaratildi');
-      navigate(`/campaigns/${res.data.data.id}`);
+      navigate(`/campaigns/${res.data.id}`);
     },
     onError: () => message.error('Xatolik yuz berdi'),
   });
 
-  const groups = groupsData?.data?.data || [];
-  const devices = devicesData?.data?.data || [];
-  const voiceMessages = voiceData?.data?.data || [];
+  const groups = groupsData?.data || [];
+  const devices = devicesData?.data || [];
+  const voiceMessages = voiceData?.data || [];
 
   const onFinish = (values: Record<string, unknown>) => {
     const payload = {

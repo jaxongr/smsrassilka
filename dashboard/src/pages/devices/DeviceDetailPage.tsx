@@ -52,7 +52,7 @@ function DeviceDetailPage() {
     },
   });
 
-  const device = data?.data?.data;
+  const device = data?.data;
 
   if (isLoading) {
     return (

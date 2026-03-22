@@ -82,8 +82,8 @@ function ConversationPage() {
     onError: () => message.error('Yuborishda xatolik'),
   });
 
-  const messages: InboxMessage[] = data?.data?.data || [];
-  const devices = devicesData?.data?.data || [];
+  const messages: InboxMessage[] = data?.data?.messages || [];
+  const devices = devicesData?.data || [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

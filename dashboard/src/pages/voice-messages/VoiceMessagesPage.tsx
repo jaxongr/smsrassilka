@@ -93,7 +93,7 @@ function VoiceMessagesPage() {
     }
   };
 
-  const voiceMessages: VoiceMessage[] = data?.data?.data || [];
+  const voiceMessages: VoiceMessage[] = data?.data || [];
 
   const columns = [
     {

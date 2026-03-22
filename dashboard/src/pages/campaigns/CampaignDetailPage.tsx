@@ -55,7 +55,7 @@ function CampaignDetailPage() {
   const pauseMut = useMutation({ mutationFn: () => campaignsApi.pauseCampaign(id!), onSuccess: () => { message.success('To\'xtatildi'); queryClient.invalidateQueries({ queryKey: ['campaign', id] }); } });
   const cancelMut = useMutation({ mutationFn: () => campaignsApi.cancelCampaign(id!), onSuccess: () => { message.success('Bekor qilindi'); queryClient.invalidateQueries({ queryKey: ['campaign', id] }); } });
 
-  const campaign = campaignData?.data?.data;
+  const campaign = campaignData?.data;
   const logs = logsData?.data?.data || [];
   const logsMeta = logsData?.data?.meta;
 

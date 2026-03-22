@@ -175,7 +175,7 @@ export function AppLayout() {
     refetchInterval: 30_000,
   });
 
-  const unreadCount = unreadData?.data?.data?.count ?? 0;
+  const unreadCount = unreadData?.data?.unreadCount ?? 0;
 
   const menuItems: MenuProps['items'] = [
     {

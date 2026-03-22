@@ -48,7 +48,7 @@ function DevicesPage() {
     onError: () => message.error('Xatolik yuz berdi'),
   });
 
-  const devices = (data?.data?.data || []).filter(
+  const devices = (data?.data || []).filter(
     (d: Device) =>
       !search ||
       d.name.toLowerCase().includes(search.toLowerCase()) ||

@@ -48,7 +48,7 @@ function BlacklistPage() {
   const importMutation = useMutation({
     mutationFn: (file: File) => blacklistApi.importBlacklist(file),
     onSuccess: (res) => {
-      message.success(`${res.data.data.imported} ta import qilindi`);
+      message.success(`${res.data.imported} ta import qilindi`);
       setImportOpen(false);
       queryClient.invalidateQueries({ queryKey: ['blacklist'] });
     },
@@ -56,7 +56,7 @@ function BlacklistPage() {
   });
 
   const entries: BlacklistEntry[] = data?.data?.data || [];
-  const meta = data?.data?.meta;
+  const meta = data?.data;
 
   const columns = [
     {

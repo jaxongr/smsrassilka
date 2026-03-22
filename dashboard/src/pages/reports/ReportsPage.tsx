@@ -53,12 +53,12 @@ function ReportsPage() {
     queryFn: () => campaignsApi.getCampaigns({ limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
   });
 
-  const dailyUsage = usageData?.data?.data || [];
+  const dailyUsage = usageData?.data?.daily || [];
   const campaigns: Campaign[] = campaignsData?.data?.data || [];
 
-  const totalSent = dailyUsage.reduce((sum, d) => sum + d.sent, 0);
-  const totalDelivered = dailyUsage.reduce((sum, d) => sum + d.delivered, 0);
-  const totalFailed = dailyUsage.reduce((sum, d) => sum + d.failed, 0);
+  const totalSent = dailyUsage.reduce((sum: number, d: any) => sum + (d.sms || 0), 0);
+  const totalDelivered = dailyUsage.reduce((sum: number, d: any) => sum + (d.calls || 0), 0);
+  const totalFailed = 0;
 
   const pieData = [
     { name: 'Yetkazildi', value: totalDelivered },
@@ -105,9 +105,8 @@ function ReportsPage() {
                   <XAxis dataKey="date" fontSize={12} />
                   <YAxis fontSize={12} />
                   <Tooltip />
-                  <Bar dataKey="sent" name="Yuborildi" fill={colors.primary} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="delivered" name="Yetkazildi" fill={colors.success} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="failed" name="Xatolik" fill={colors.error} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="sms" name="SMS" fill={colors.primary} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="calls" name="Qo'ng'iroqlar" fill={colors.success} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
