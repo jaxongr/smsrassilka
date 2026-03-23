@@ -96,12 +96,28 @@ export class TaskQueueService {
     });
     const deviceCount = Math.max(onlineDeviceCount, 1);
 
-    // Calculate per-device interval
-    // For CALL campaigns: minimum 40 seconds between calls (25s ring + 10s talk + 5s buffer)
-    // For SMS: use campaign intervalMs (default 1000ms)
-    const perDeviceInterval = campaign.type === CampaignType.CALL
-      ? Math.max(campaign.intervalMs, 40000)
-      : campaign.intervalMs;
+    // For CALL campaigns: DON'T queue with delays - send one at a time
+    // Server waits for task_result before sending next call
+    if (campaign.type === CampaignType.CALL) {
+      // Only queue the FIRST task, rest stay PENDING
+      const firstTask = allTasks[0];
+      if (firstTask) {
+        const queue = this.callQueue;
+        await queue.add(
+          { taskId: firstTask.id, campaignId },
+          { attempts: 3, backoff: { type: 'exponential' as const, delay: 5000 }, removeOnComplete: true },
+        );
+        await this.prisma.taskLog.update({
+          where: { id: firstTask.id },
+          data: { status: TaskStatus.QUEUED },
+        });
+      }
+      this.logger.log(`Campaign ${campaignId}: CALL mode - ${totalCreated} tasks, sending one at a time`);
+      return;
+    }
+
+    // For SMS: use interval-based parallel sending
+    const perDeviceInterval = campaign.intervalMs;
 
     // Fetch all tasks and distribute across devices with staggered delays
     const allTasks = await this.prisma.taskLog.findMany({
@@ -327,6 +343,28 @@ export class TaskQueueService {
         where: { id: task.campaignId },
         data: { status: 'COMPLETED', completedAt: new Date() },
       });
+    } else {
+      // For CALL campaigns: queue the next PENDING task (one at a time)
+      if (task.type === CampaignType.CALL) {
+        const campaign = await this.prisma.campaign.findUnique({ where: { id: task.campaignId } });
+        if (campaign && campaign.status === 'RUNNING') {
+          const nextTask = await this.prisma.taskLog.findFirst({
+            where: { campaignId: task.campaignId, status: TaskStatus.PENDING },
+            orderBy: { createdAt: 'asc' },
+          });
+          if (nextTask) {
+            this.logger.log(`CALL: queuing next task ${nextTask.id}`);
+            await this.callQueue.add(
+              { taskId: nextTask.id, campaignId: task.campaignId },
+              { delay: 3000, attempts: 3, removeOnComplete: true },
+            );
+            await this.prisma.taskLog.update({
+              where: { id: nextTask.id },
+              data: { status: TaskStatus.QUEUED },
+            });
+          }
+        }
+      }
     }
 
     // Broadcast progress to dashboard
