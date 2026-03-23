@@ -1,6 +1,9 @@
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionService {
+  static const _platform = MethodChannel('com.smsgateway/permissions');
+
   Future<Map<String, bool>> requestAllPermissions() async {
     final statuses = await [
       Permission.sms,
@@ -8,11 +11,25 @@ class PermissionService {
       Permission.notification,
     ].request();
 
+    // Request battery optimization exemption
+    await requestIgnoreBatteryOptimization();
+
     return {
       'sms': statuses[Permission.sms]?.isGranted ?? false,
       'phone': statuses[Permission.phone]?.isGranted ?? false,
       'notification': statuses[Permission.notification]?.isGranted ?? false,
     };
+  }
+
+  Future<void> requestIgnoreBatteryOptimization() async {
+    try {
+      await _platform.invokeMethod('requestBatteryOptimization');
+    } catch (_) {
+      // Fallback - use permission_handler
+      try {
+        await Permission.ignoreBatteryOptimizations.request();
+      } catch (_) {}
+    }
   }
 
   Future<Map<String, bool>> checkPermissions() async {
