@@ -51,8 +51,8 @@ function ApiTokensTab() {
   const createMutation = useMutation({
     mutationFn: apiTokensApi.createToken,
     onSuccess: (res) => {
-      const result = res.data?.data ?? res.data;
-      setCreatedToken(result.fullToken);
+      const result = res.data?.data ?? res.data ?? res;
+      setCreatedToken(result.token || result.fullToken || JSON.stringify(result));
       queryClient.invalidateQueries({ queryKey: ['api-tokens'] });
       form.resetFields();
       message.success('Token yaratildi');
