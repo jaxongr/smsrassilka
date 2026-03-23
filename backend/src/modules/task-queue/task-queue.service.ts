@@ -100,7 +100,10 @@ export class TaskQueueService {
     // Server waits for task_result before sending next call
     if (campaign.type === CampaignType.CALL) {
       // Only queue the FIRST task, rest stay PENDING
-      const firstTask = allTasks[0];
+      const firstTask = await this.prisma.taskLog.findFirst({
+        where: { campaignId, status: TaskStatus.PENDING },
+        orderBy: { createdAt: 'asc' },
+      });
       if (firstTask) {
         const queue = this.callQueue;
         await queue.add(
