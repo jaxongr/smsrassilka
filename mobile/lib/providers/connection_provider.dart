@@ -153,7 +153,11 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
       maxDurationSec: task.maxDurationSec,
     );
     final result = await _callService.makeCall(callTask);
+    debugPrint('Call result: ${result.toJson()}');
     _wsService.sendMessage('task_result', result.toJson());
+
+    // Wait 5 seconds between calls for phone to recover
+    await Future.delayed(const Duration(seconds: 5));
 
     final statsNotifier = ref.read(statsProvider.notifier);
     if (result.status == TaskStatus.success) {
