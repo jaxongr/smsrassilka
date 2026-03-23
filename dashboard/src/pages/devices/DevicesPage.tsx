@@ -162,6 +162,23 @@ function DevicesPage() {
       key: 'lastSeenAt',
       render: (v: string) => (v ? formatDate(v) : '-'),
     },
+    {
+      title: '',
+      key: 'qr',
+      width: 50,
+      render: (_: unknown, record: any) => (
+        <Button
+          type="text"
+          icon={<QrcodeOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setNewDevice({ id: record.id, name: record.name, deviceToken: record.deviceToken });
+            setQrOpen(true);
+          }}
+          title="QR kod"
+        />
+      ),
+    },
   ];
 
   return (
