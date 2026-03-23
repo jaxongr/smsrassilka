@@ -97,9 +97,11 @@ export class TaskQueueService {
     const deviceCount = Math.max(onlineDeviceCount, 1);
 
     // Calculate per-device interval
-    // With intervalMs=1000 and 3 devices: each device gets a task every 1000ms
-    // Total throughput: 3 devices * 60 tasks/min = 180 SMS/min
-    const perDeviceInterval = campaign.intervalMs;
+    // For CALL campaigns: minimum 40 seconds between calls (25s ring + 10s talk + 5s buffer)
+    // For SMS: use campaign intervalMs (default 1000ms)
+    const perDeviceInterval = campaign.type === CampaignType.CALL
+      ? Math.max(campaign.intervalMs, 40000)
+      : campaign.intervalMs;
 
     // Fetch all tasks and distribute across devices with staggered delays
     const allTasks = await this.prisma.taskLog.findMany({
