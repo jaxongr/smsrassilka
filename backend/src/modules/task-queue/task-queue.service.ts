@@ -256,7 +256,7 @@ export class TaskQueueService {
     // Build voice file download URL for call campaigns
     let voiceFileUrl: string | null = null;
     if (task.type === CampaignType.CALL && task.campaign.voiceMessageId) {
-      voiceFileUrl = `/api/voice-messages/${task.campaign.voiceMessageId}/download`;
+      voiceFileUrl = `/api/voice-download/${task.campaign.voiceMessageId}`;
     }
 
     // Send to device via WebSocket

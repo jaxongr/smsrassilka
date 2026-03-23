@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   StreamableFile,
+  SetMetadata,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiConsumes } from '@nestjs/swagger';
