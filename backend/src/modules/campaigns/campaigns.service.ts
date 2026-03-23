@@ -117,8 +117,8 @@ export class CampaignsService {
   async update(id: string, dto: UpdateCampaignDto) {
     const campaign = await this.findOne(id);
 
-    if (campaign.status !== CampaignStatus.DRAFT) {
-      throw new BadRequestException('Can only update campaigns in DRAFT status');
+    if (campaign.status === CampaignStatus.COMPLETED || campaign.status === CampaignStatus.CANCELLED) {
+      throw new BadRequestException('Tugallangan yoki bekor qilingan kampaniyani tahrirlash mumkin emas');
     }
 
     return this.prisma.campaign.update({
