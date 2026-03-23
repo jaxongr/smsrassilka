@@ -56,16 +56,22 @@ class MainActivity : FlutterActivity() {
                         val simSlot = call.argument<Int>("simSlot") ?: 0
                         val maxDurationSec = call.argument<Int>("maxDurationSec") ?: 60
 
+                        var resultSent = false
                         callService.makeCall(
                             phoneNumber, voiceFileUrl, simSlot, maxDurationSec
                         ) { success, error, duration, answered ->
-                            runOnUiThread {
-                                val response = HashMap<String, Any?>()
-                                response["success"] = success
-                                response["error"] = error
-                                response["duration"] = duration
-                                response["answered"] = answered
-                                result.success(response)
+                            if (!resultSent) {
+                                resultSent = true
+                                runOnUiThread {
+                                    val response = HashMap<String, Any?>()
+                                    response["success"] = success
+                                    response["error"] = error
+                                    response["duration"] = duration
+                                    response["answered"] = answered
+                                    try {
+                                        result.success(response)
+                                    } catch (_: Exception) {}
+                                }
                             }
                         }
                     }
