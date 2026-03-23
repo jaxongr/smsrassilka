@@ -18,6 +18,7 @@ import {
   MenuUnfoldOutlined,
   CrownOutlined,
   ApiOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import styled from 'styled-components';
 import { colors } from '@/styles/theme';
@@ -254,6 +255,11 @@ export function AppLayout() {
       key: '/settings?tab=api',
       icon: <ApiOutlined />,
       label: 'API',
+    },
+    {
+      key: '/docs',
+      icon: <FileTextOutlined />,
+      label: 'API Docs',
     },
   ];
 

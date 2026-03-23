@@ -8,6 +8,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
 const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
+const ApiDocsPage = lazy(() => import('@/pages/docs/ApiDocsPage'));
 
 /* Dashboard pages - lazy loaded */
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
@@ -48,6 +49,7 @@ export function AppRoutes() {
       <Routes>
         {/* Public routes */}
         <Route path="/welcome" element={<LandingPage />} />
+        <Route path="/docs" element={<ApiDocsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 

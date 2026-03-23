@@ -328,6 +328,9 @@ function LandingPage() {
           SMS <span>Gateway</span>
         </NavBrand>
         <NavActions>
+          <Button type="text" onClick={() => navigate('/docs')}>
+            API Dokumentatsiya
+          </Button>
           <Button type="text" onClick={() => navigate('/login')}>
             Kirish
           </Button>
