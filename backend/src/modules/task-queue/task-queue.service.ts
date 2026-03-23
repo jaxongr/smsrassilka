@@ -96,68 +96,30 @@ export class TaskQueueService {
     });
     const deviceCount = Math.max(onlineDeviceCount, 1);
 
-    // For CALL campaigns: DON'T queue with delays - send one at a time
-    // Server waits for task_result before sending next call
-    if (campaign.type === CampaignType.CALL) {
-      // Only queue the FIRST task, rest stay PENDING
-      const firstTask = await this.prisma.taskLog.findFirst({
-        where: { campaignId, status: TaskStatus.PENDING },
-        orderBy: { createdAt: 'asc' },
-      });
-      if (firstTask) {
-        const queue = this.callQueue;
-        await queue.add(
-          { taskId: firstTask.id, campaignId },
-          { attempts: 3, backoff: { type: 'exponential' as const, delay: 5000 }, removeOnComplete: true },
-        );
-        await this.prisma.taskLog.update({
-          where: { id: firstTask.id },
-          data: { status: TaskStatus.QUEUED },
-        });
-      }
-      this.logger.log(`Campaign ${campaignId}: CALL mode - ${totalCreated} tasks, sending one at a time`);
-      return;
-    }
+    // SemySMS-style: send one task per device, wait for result, then send next
+    // Each online device gets one task immediately
+    // When task_result comes back, next PENDING task is queued for that device
+    const onlineDevices = await this.prisma.device.findMany({
+      where: { id: { in: campaign.deviceIds }, isOnline: true },
+      select: { id: true },
+    });
 
-    // For SMS: use interval-based parallel sending
-    const perDeviceInterval = campaign.intervalMs;
-
-    // Fetch all tasks and distribute across devices with staggered delays
-    const allTasks = await this.prisma.taskLog.findMany({
+    const pendingTasks = await this.prisma.taskLog.findMany({
       where: { campaignId, status: TaskStatus.PENDING },
       select: { id: true },
       orderBy: { createdAt: 'asc' },
+      take: Math.max(onlineDevices.length, 1),
     });
 
-    // Distribute tasks round-robin across device "slots"
-    // Each device slot gets tasks with delay = slotTaskIndex * perDeviceInterval
-    // Different slots are staggered by perDeviceInterval / deviceCount
-    const stagger = Math.floor(perDeviceInterval / deviceCount);
+    const queue = campaign.type === CampaignType.CALL ? this.callQueue : this.smsQueue;
 
-    for (let i = 0; i < allTasks.length; i += BATCH_SIZE) {
-      const batch = allTasks.slice(i, i + BATCH_SIZE);
-      const jobs = batch.map((task, batchIdx) => {
-        const globalIdx = i + batchIdx;
-        const deviceSlot = globalIdx % deviceCount;
-        const taskInSlot = Math.floor(globalIdx / deviceCount);
-        // Stagger: device 0 starts at 0ms, device 1 at stagger ms, etc.
-        const delay = (taskInSlot * perDeviceInterval) + (deviceSlot * stagger);
-
-        return {
-          data: { taskId: task.id, campaignId },
-          opts: {
-            delay,
-            attempts: 3,
-            backoff: { type: 'exponential' as const, delay: 5000 },
-            removeOnComplete: true,
-          },
-        };
-      });
-
-      await queue.addBulk(jobs);
-
-      await this.prisma.taskLog.updateMany({
-        where: { id: { in: batch.map((t) => t.id) } },
+    for (let i = 0; i < pendingTasks.length; i++) {
+      await queue.add(
+        { taskId: pendingTasks[i].id, campaignId },
+        { delay: i * 100, attempts: 3, backoff: { type: 'exponential' as const, delay: 5000 }, removeOnComplete: true },
+      );
+      await this.prisma.taskLog.update({
+        where: { id: pendingTasks[i].id },
         data: { status: TaskStatus.QUEUED },
       });
     }
@@ -347,25 +309,24 @@ export class TaskQueueService {
         data: { status: 'COMPLETED', completedAt: new Date() },
       });
     } else {
-      // For CALL campaigns: queue the next PENDING task (one at a time)
-      if (task.type === CampaignType.CALL) {
-        const campaign = await this.prisma.campaign.findUnique({ where: { id: task.campaignId } });
-        if (campaign && campaign.status === 'RUNNING') {
-          const nextTask = await this.prisma.taskLog.findFirst({
-            where: { campaignId: task.campaignId, status: TaskStatus.PENDING },
-            orderBy: { createdAt: 'asc' },
+      // Queue next PENDING task for this campaign (SemySMS-style: one at a time per device)
+      const campaign = await this.prisma.campaign.findUnique({ where: { id: task.campaignId } });
+      if (campaign && campaign.status === 'RUNNING') {
+        const nextTask = await this.prisma.taskLog.findFirst({
+          where: { campaignId: task.campaignId, status: TaskStatus.PENDING },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (nextTask) {
+          const queue = task.type === CampaignType.CALL ? this.callQueue : this.smsQueue;
+          const delay = task.type === CampaignType.CALL ? 3000 : 100; // SMS: deyarli darhol, CALL: 3s pauza
+          await queue.add(
+            { taskId: nextTask.id, campaignId: task.campaignId },
+            { delay, attempts: 3, removeOnComplete: true },
+          );
+          await this.prisma.taskLog.update({
+            where: { id: nextTask.id },
+            data: { status: TaskStatus.QUEUED },
           });
-          if (nextTask) {
-            this.logger.log(`CALL: queuing next task ${nextTask.id}`);
-            await this.callQueue.add(
-              { taskId: nextTask.id, campaignId: task.campaignId },
-              { delay: 3000, attempts: 3, removeOnComplete: true },
-            );
-            await this.prisma.taskLog.update({
-              where: { id: nextTask.id },
-              data: { status: TaskStatus.QUEUED },
-            });
-          }
         }
       }
     }
