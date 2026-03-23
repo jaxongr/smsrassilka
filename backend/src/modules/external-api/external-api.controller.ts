@@ -25,7 +25,7 @@ export class ExternalApiController {
   @ApiResponse({ status: 201, description: 'SMS queued for sending' })
   @ApiResponse({ status: 403, description: 'Daily limit reached' })
   async sendSms(@Request() req: any, @Body() dto: SendSmsDto) {
-    return this.externalApiService.sendSms(req.user.sub, dto);
+    return this.externalApiService.sendSms(req.user.id, dto);
   }
 
   @Post('call/send')
@@ -33,20 +33,20 @@ export class ExternalApiController {
   @ApiResponse({ status: 201, description: 'Call queued for sending' })
   @ApiResponse({ status: 403, description: 'Daily limit reached' })
   async sendCall(@Request() req: any, @Body() dto: SendCallDto) {
-    return this.externalApiService.sendCall(req.user.sub, dto);
+    return this.externalApiService.sendCall(req.user.id, dto);
   }
 
   @Get('sms/status/:taskId')
   @ApiOperation({ summary: 'Get task status' })
   @ApiResponse({ status: 200, description: 'Task status info' })
   async getTaskStatus(@Request() req: any, @Param('taskId') taskId: string) {
-    return this.externalApiService.getTaskStatus(req.user.sub, taskId);
+    return this.externalApiService.getTaskStatus(req.user.id, taskId);
   }
 
   @Get('balance')
   @ApiOperation({ summary: 'Get usage vs limits balance' })
   @ApiResponse({ status: 200, description: 'Current usage and limits' })
   async getBalance(@Request() req: any) {
-    return this.externalApiService.getBalance(req.user.sub);
+    return this.externalApiService.getBalance(req.user.id);
   }
 }

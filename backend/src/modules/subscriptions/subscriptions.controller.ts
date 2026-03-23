@@ -23,8 +23,8 @@ export class SubscriptionsController {
   @ApiResponse({ status: 200, description: 'Current subscription info' })
   async getCurrent(@Request() req: any) {
     const [plan, usage] = await Promise.all([
-      this.subscriptionsService.getCurrentPlan(req.user.sub),
-      this.subscriptionsService.getUsage(req.user.sub),
+      this.subscriptionsService.getCurrentPlan(req.user.id),
+      this.subscriptionsService.getUsage(req.user.id),
     ]);
 
     return { subscription: plan, usage };
@@ -41,6 +41,6 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Upgrade subscription plan' })
   @ApiResponse({ status: 200, description: 'Plan upgraded successfully' })
   async upgrade(@Request() req: any, @Body() body: { plan: SubscriptionPlan }) {
-    return this.subscriptionsService.upgradePlan(req.user.sub, body.plan);
+    return this.subscriptionsService.upgradePlan(req.user.id, body.plan);
   }
 }

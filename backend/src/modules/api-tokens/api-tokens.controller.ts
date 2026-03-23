@@ -26,14 +26,14 @@ export class ApiTokensController {
   @ApiOperation({ summary: 'Create a new API token (returns full token once)' })
   @ApiResponse({ status: 201, description: 'Token created successfully' })
   async create(@Request() req: any, @Body() dto: CreateApiTokenDto) {
-    return this.apiTokensService.create(req.user.sub, dto);
+    return this.apiTokensService.create(req.user.id, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List all API tokens (prefix only)' })
   @ApiResponse({ status: 200, description: 'List of tokens' })
   async findAll(@Request() req: any) {
-    return this.apiTokensService.findAllByUser(req.user.sub);
+    return this.apiTokensService.findAllByUser(req.user.id);
   }
 
   @Patch(':id')
@@ -44,13 +44,13 @@ export class ApiTokensController {
     @Param('id') id: string,
     @Body() dto: UpdateApiTokenDto,
   ) {
-    return this.apiTokensService.update(id, req.user.sub, dto);
+    return this.apiTokensService.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete an API token' })
   @ApiResponse({ status: 200, description: 'Token deleted successfully' })
   async delete(@Request() req: any, @Param('id') id: string) {
-    return this.apiTokensService.delete(id, req.user.sub);
+    return this.apiTokensService.delete(id, req.user.id);
   }
 }
