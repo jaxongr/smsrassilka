@@ -132,8 +132,8 @@ model SimCard {
   callCapable    Boolean  @default(true)
   dailySmsCount  Int      @default(0)
   dailyCallCount Int      @default(0)
-  dailyLimitSms  Int      @default(200)
-  dailyLimitCall Int      @default(100)
+  dailyLimitSms  Int      @default(999999)
+  dailyLimitCall Int      @default(999999)
   lastResetAt    DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
