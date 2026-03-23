@@ -21,6 +21,9 @@ import { GatewayModule } from './modules/gateway/gateway.module';
 import { BlacklistModule } from './modules/blacklist/blacklist.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ApiTokensModule } from './modules/api-tokens/api-tokens.module';
+import { ExternalApiModule } from './modules/external-api/external-api.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -60,6 +63,9 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     BlacklistModule,
     InboxModule,
     AnalyticsModule,
+    ApiTokensModule,
+    ExternalApiModule,
+    SubscriptionsModule,
   ],
 })
 export class AppModule {}

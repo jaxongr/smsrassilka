@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionPlan } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { PLANS } from '../subscriptions/plans.config';
 
 @Injectable()
 export class AuthService {
@@ -59,12 +61,25 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
+    const freePlan = PLANS[SubscriptionPlan.FREE];
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         fullName: dto.fullName,
-        role: dto.role ?? 'OPERATOR',
+        role: 'OPERATOR',
+      },
+    });
+
+    // Auto-create FREE subscription for new user
+    await this.prisma.subscription.create({
+      data: {
+        userId: user.id,
+        plan: SubscriptionPlan.FREE,
+        maxDevices: freePlan.maxDevices,
+        maxSmsPerDay: freePlan.maxSmsPerDay,
+        maxCallsPerDay: freePlan.maxCallsPerDay,
       },
     });
 

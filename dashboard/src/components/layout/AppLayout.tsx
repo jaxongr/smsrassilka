@@ -16,6 +16,8 @@ import {
   BellOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  CrownOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import styled from 'styled-components';
 import { colors } from '@/styles/theme';
@@ -239,9 +241,19 @@ export function AppLayout() {
         ]
       : []),
     {
+      key: '/subscription',
+      icon: <CrownOutlined />,
+      label: 'Obuna',
+    },
+    {
       key: '/settings',
       icon: <SettingOutlined />,
       label: 'Sozlamalar',
+    },
+    {
+      key: '/settings?tab=api',
+      icon: <ApiOutlined />,
+      label: 'API',
     },
   ];
 

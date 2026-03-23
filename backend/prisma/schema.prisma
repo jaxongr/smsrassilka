@@ -19,8 +19,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  campaigns Campaign[]
-  devices   Device[]
+  campaigns    Campaign[]
+  devices      Device[]
+  apiTokens    ApiToken[]
+  subscription Subscription?
 
   @@index([email])
 }
@@ -28,6 +30,72 @@ model User {
 enum Role {
   ADMIN
   OPERATOR
+}
+
+// ============ API TOKENS ============
+
+model ApiToken {
+  id          String    @id @default(uuid())
+  name        String
+  token       String    @unique
+  tokenPrefix String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions String[]
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  rateLimit   Int       @default(60)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ============ SUBSCRIPTIONS ============
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String             @unique
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(ACTIVE)
+  maxDevices     Int  @default(1)
+  maxSmsPerDay   Int  @default(100)
+  maxCallsPerDay Int  @default(50)
+  currentPeriodStart DateTime @default(now())
+  currentPeriodEnd   DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============ USAGE LOGS ============
+
+model UsageLog {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime @default(now()) @db.Date
+  smsCount  Int      @default(0)
+  callCount Int      @default(0)
+  apiCalls  Int      @default(0)
+
+  @@unique([userId, date])
+  @@index([userId])
 }
 
 // ============ DEVICES (PHONES) ============

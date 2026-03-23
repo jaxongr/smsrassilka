@@ -6,6 +6,8 @@ import { PrivateRoute } from './PrivateRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage'));
+const LandingPage = lazy(() => import('@/pages/landing/LandingPage'));
 
 /* Dashboard pages - lazy loaded */
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
@@ -23,6 +25,7 @@ const ConversationPage = lazy(() => import('@/pages/inbox/ConversationPage'));
 const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage'));
 const UsersPage = lazy(() => import('@/pages/users/UsersPage'));
 const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage'));
+const SubscriptionPage = lazy(() => import('@/pages/subscription/SubscriptionPage'));
 
 const LoadingWrapper = styled.div`
   display: flex;
@@ -43,8 +46,12 @@ export function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Public routes */}
+        <Route path="/welcome" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
+        {/* Private routes */}
         <Route
           element={
             <PrivateRoute>
@@ -67,6 +74,7 @@ export function AppRoutes() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
