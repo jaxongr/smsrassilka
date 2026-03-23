@@ -57,14 +57,15 @@ class CallService(private val activity: Activity) {
                         if (!answered) {
                             answered = true
                             startTime = System.currentTimeMillis()
-                            // Play voice after 2 seconds
+                            // Wait 8 seconds for person to answer, then play
+                            // Android can't detect when remote answers for outgoing calls
+                            // OFFHOOK = dialing started, not answered
                             handler.postDelayed({
                                 playViaSpeaker(voiceFilePath) {
-                                    // Voice done - end call
                                     Log.d(TAG, "Voice finished, ending call")
                                     handler.postDelayed({ endCall() }, 500)
                                 }
-                            }, 2000)
+                            }, 8000)
                         }
                     }
                     TelephonyManager.CALL_STATE_IDLE -> {
