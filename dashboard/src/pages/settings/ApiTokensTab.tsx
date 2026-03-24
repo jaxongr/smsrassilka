@@ -102,14 +102,11 @@ function ApiTokensTab() {
     },
     {
       title: 'Token',
-      dataIndex: 'tokenPrefix',
-      key: 'tokenPrefix',
-      render: (prefix: string) => (
-        <Typography.Text
-          code
-          copyable={{ text: prefix + '••••••••', tooltips: ["To'liq token faqat yaratilganda ko'rsatiladi"] }}
-        >
-          {prefix}••••••••
+      dataIndex: 'token',
+      key: 'token',
+      render: (token: string) => (
+        <Typography.Text code copyable style={{ fontSize: 11 }}>
+          {token}
         </Typography.Text>
       ),
     },

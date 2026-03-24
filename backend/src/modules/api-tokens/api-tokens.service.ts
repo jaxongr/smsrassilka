@@ -20,14 +20,13 @@ export class ApiTokensService {
    * and return the raw token to the user (shown only once).
    */
   async create(userId: string, dto: CreateApiTokenDto) {
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const tokenPrefix = rawToken.substring(0, 8);
+    const rawToken = 'sk_' + crypto.randomBytes(32).toString('hex');
+    const tokenPrefix = rawToken.substring(0, 10);
 
     const apiToken = await this.prisma.apiToken.create({
       data: {
         name: dto.name,
-        token: hashedToken,
+        token: rawToken, // Ochiq saqlash - har doim ko'rish mumkin
         tokenPrefix,
         userId,
         permissions: dto.permissions ?? [],
@@ -35,41 +34,17 @@ export class ApiTokensService {
     });
 
     this.logger.log(`API token created: ${apiToken.id} for user ${userId}`);
-
-    return {
-      id: apiToken.id,
-      name: apiToken.name,
-      token: rawToken, // Only returned once
-      tokenPrefix,
-      permissions: apiToken.permissions,
-      isActive: apiToken.isActive,
-      rateLimit: apiToken.rateLimit,
-      createdAt: apiToken.createdAt,
-    };
+    return apiToken;
   }
 
   /**
    * List all tokens for a user (prefix only, no full token).
    */
   async findAllByUser(userId: string) {
-    const tokens = await this.prisma.apiToken.findMany({
+    return this.prisma.apiToken.findMany({
       where: { userId },
-      select: {
-        id: true,
-        name: true,
-        tokenPrefix: true,
-        permissions: true,
-        isActive: true,
-        lastUsedAt: true,
-        expiresAt: true,
-        rateLimit: true,
-        createdAt: true,
-        updatedAt: true,
-      },
       orderBy: { createdAt: 'desc' },
     });
-
-    return tokens;
   }
 
   /**

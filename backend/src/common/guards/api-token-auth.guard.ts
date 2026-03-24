@@ -28,12 +28,9 @@ export class ApiTokenAuthGuard implements CanActivate {
       throw new UnauthorizedException('Missing x-api-key header');
     }
 
-    // Hash the raw token with sha256
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
-
-    // Look up in ApiToken table
+    // Look up token directly (stored as plain text)
     const apiToken = await this.prisma.apiToken.findUnique({
-      where: { token: hashedToken },
+      where: { token: rawToken },
     });
 
     if (!apiToken) {
