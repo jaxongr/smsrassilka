@@ -11,6 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 import com.smsgateway.app.services.SmsService
 import com.smsgateway.app.services.CallService
 import com.smsgateway.app.services.SimManagerService
+import com.smsgateway.app.services.GatewayForegroundService
 
 class MainActivity : FlutterActivity() {
 
@@ -111,6 +112,9 @@ class MainActivity : FlutterActivity() {
 
         // Auto-request battery optimization on startup
         requestBatteryOptimization()
+
+        // Start foreground service - keeps app alive when screen is off
+        GatewayForegroundService.start(this)
     }
 
     private fun requestBatteryOptimization() {

@@ -207,13 +207,33 @@ function ApiTokensTab() {
               message="Bu tokenni saqlang, qayta ko'rsatilmaydi!"
               style={{ marginBottom: 16 }}
             />
-            <Input.Search
-              value={createdToken}
-              readOnly
-              enterButton={<CopyOutlined />}
-              onSearch={() => copyToClipboard(createdToken)}
-              style={{ marginBottom: 8 }}
-            />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <Input
+                value={createdToken}
+                readOnly
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              />
+              <Button
+                type="primary"
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard.writeText(createdToken).then(() => {
+                    message.success('Token nusxalandi!');
+                  }).catch(() => {
+                    // Fallback for older browsers
+                    const el = document.createElement('textarea');
+                    el.value = createdToken;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    message.success('Token nusxalandi!');
+                  });
+                }}
+              >
+                Nusxalash
+              </Button>
+            </div>
           </div>
         ) : (
           <Form form={form} layout="vertical" onFinish={handleCreate}>

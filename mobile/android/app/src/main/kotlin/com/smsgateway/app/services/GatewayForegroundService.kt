@@ -108,7 +108,7 @@ class GatewayForegroundService : Service() {
                 PowerManager.PARTIAL_WAKE_LOCK,
                 WAKELOCK_TAG
             ).apply {
-                acquire(10 * 60 * 1000L) // 10 minutes, will be re-acquired
+                acquire() // Cheksiz - telefon blokda ham ishlaydi
             }
             Log.d(TAG, "WakeLock acquired")
         } catch (e: Exception) {
