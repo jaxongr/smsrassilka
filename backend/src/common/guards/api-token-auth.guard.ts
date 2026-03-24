@@ -74,6 +74,7 @@ export class ApiTokenAuthGuard implements CanActivate {
 
     // Attach userId and token info to request
     request.user = {
+      id: apiToken.userId,
       sub: apiToken.userId,
       tokenId: apiToken.id,
       permissions: apiToken.permissions,
