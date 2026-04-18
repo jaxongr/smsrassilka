@@ -106,6 +106,26 @@ class MainActivity : FlutterActivity() {
                         requestBatteryOptimization()
                         result.success(true)
                     }
+                    "keepScreenOn" -> {
+                        val enable = call.argument<Boolean>("enable") ?: false
+                        runOnUiThread {
+                            if (enable) {
+                                window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            } else {
+                                window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            }
+                        }
+                        result.success(true)
+                    }
+                    "setBrightness" -> {
+                        val brightness = (call.argument<Double>("brightness") ?: 0.5).toFloat()
+                        runOnUiThread {
+                            val params = window.attributes
+                            params.screenBrightness = brightness
+                            window.attributes = params
+                        }
+                        result.success(true)
+                    }
                     else -> result.notImplemented()
                 }
             }

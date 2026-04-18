@@ -13,6 +13,7 @@ import '../../widgets/status_card.dart';
 import '../../widgets/sim_card_widget.dart';
 import '../../widgets/task_list_tile.dart';
 import '../../widgets/connection_indicator.dart';
+import '../dark_mode_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -146,30 +147,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: AppTheme.spacingM),
 
-            // Start/Stop Gateway
+            // Status: Gateway faol (avtomatik)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM, horizontal: AppTheme.spacingL),
+              decoration: BoxDecoration(
+                color: connectionState == ws.ConnectionState.connected
+                    ? AppTheme.successColor.withOpacity(0.1)
+                    : AppTheme.warningColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    connectionState == ws.ConnectionState.connected
+                        ? Icons.check_circle
+                        : Icons.sync,
+                    color: connectionState == ws.ConnectionState.connected
+                        ? AppTheme.successColor
+                        : AppTheme.warningColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    connectionState == ws.ConnectionState.connected
+                        ? 'Gateway faol - tayyor'
+                        : 'Ulanmoqda...',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: connectionState == ws.ConnectionState.connected
+                          ? AppTheme.successColor
+                          : AppTheme.warningColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingS),
+
+            // Qorong'u rejim tugmasi - ekran o'chmasdan SMS yuborish uchun
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: connectionState == ws.ConnectionState.connected
-                    ? () => connectionNotifier.toggleGateway()
-                    : null,
-                icon: Icon(
-                  connectionNotifier.isGatewayActive
-                      ? Icons.stop_circle_outlined
-                      : Icons.play_circle_outlined,
-                ),
-                label: Text(
-                  connectionNotifier.isGatewayActive
-                      ? 'Gatewayni to\'xtatish'
-                      : 'Gatewayni ishga tushirish',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: connectionNotifier.isGatewayActive
-                      ? AppTheme.errorColor
-                      : AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTheme.spacingM,
-                  ),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const DarkModeScreen(),
+                  ));
+                },
+                icon: const Icon(Icons.nightlight_round, size: 18),
+                label: const Text('Qorong\'u rejim (ekran ochilmaydi)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.textSecondary,
+                  side: BorderSide(color: AppTheme.cardBorder),
+                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
                 ),
               ),
             ),

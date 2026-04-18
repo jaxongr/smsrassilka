@@ -216,8 +216,8 @@ class ConnectionNotifier extends StateNotifier<ConnectionState> {
 
   @override
   void dispose() {
-    _statusTimer?.cancel();
-    _wsService.dispose();
+    // WebSocket YOPILMAYDI - qurilma doim ishlab turishi kerak
+    // Faqat admin serverdan bloklay oladi
     super.dispose();
   }
 }
