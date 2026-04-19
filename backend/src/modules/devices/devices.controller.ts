@@ -71,4 +71,31 @@ export class DevicesController {
   ) {
     return this.devicesService.updateSimCard(deviceId, parseInt(slotIndex, 10), dto);
   }
+
+  @Patch(':id/limits')
+  @ApiOperation({ summary: 'Qurilma uchun SMS/Call limitni belgilash' })
+  updateLimits(
+    @Param('id') id: string,
+    @Body() dto: { smsLimit?: number; callLimit?: number },
+  ) {
+    return this.devicesService.updateLimits(id, dto);
+  }
+
+  @Post(':id/block')
+  @ApiOperation({ summary: 'Qurilmani bloklash (SMS yuborilmaydi)' })
+  blockDevice(@Param('id') id: string) {
+    return this.devicesService.setBlocked(id, true);
+  }
+
+  @Post(':id/unblock')
+  @ApiOperation({ summary: 'Qurilmani blokdan chiqarish' })
+  unblockDevice(@Param('id') id: string) {
+    return this.devicesService.setBlocked(id, false);
+  }
+
+  @Post(':id/reset-counters')
+  @ApiOperation({ summary: 'SMS/Call counterlarni 0 ga qaytarish' })
+  resetCounters(@Param('id') id: string) {
+    return this.devicesService.resetCounters(id);
+  }
 }

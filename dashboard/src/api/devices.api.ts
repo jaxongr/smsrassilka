@@ -30,4 +30,17 @@ export const devicesApi = {
       `/devices/${deviceId}/sims/${slotIndex}`,
       data,
     ),
+
+  // Limit va blok boshqaruvi
+  updateLimits: (id: string, data: { smsLimit?: number; callLimit?: number }) =>
+    api.patch(`/devices/${id}/limits`, data),
+
+  blockDevice: (id: string) =>
+    api.post(`/devices/${id}/block`),
+
+  unblockDevice: (id: string) =>
+    api.post(`/devices/${id}/unblock`),
+
+  resetCounters: (id: string) =>
+    api.post(`/devices/${id}/reset-counters`),
 };

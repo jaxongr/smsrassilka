@@ -60,6 +60,34 @@ export class DevicesService {
     });
   }
 
+  async updateLimits(id: string, dto: { smsLimit?: number; callLimit?: number }) {
+    await this.findOne(id);
+    return this.prisma.device.update({
+      where: { id },
+      data: {
+        ...(dto.smsLimit !== undefined && { smsLimit: dto.smsLimit }),
+        ...(dto.callLimit !== undefined && { callLimit: dto.callLimit }),
+      },
+    });
+  }
+
+  async setBlocked(id: string, blocked: boolean) {
+    await this.findOne(id);
+    this.logger.log(`Device ${id} ${blocked ? 'blocked' : 'unblocked'}`);
+    return this.prisma.device.update({
+      where: { id },
+      data: { isBlocked: blocked },
+    });
+  }
+
+  async resetCounters(id: string) {
+    await this.findOne(id);
+    return this.prisma.device.update({
+      where: { id },
+      data: { totalSmsSent: 0, totalCallsSent: 0 },
+    });
+  }
+
   async remove(id: string) {
     await this.findOne(id);
 

@@ -283,6 +283,24 @@ export class TaskQueueService {
       data: updateData,
     });
 
+    // Qurilma counterini oshiramiz (SMS yoki CALL muvaffaqiyatli yuborilsa)
+    if (
+      task.deviceId &&
+      (result.status === TaskStatus.SENT || result.status === TaskStatus.DELIVERED)
+    ) {
+      if (task.type === 'CALL') {
+        await this.prisma.device.update({
+          where: { id: task.deviceId },
+          data: { totalCallsSent: { increment: 1 } },
+        });
+      } else {
+        await this.prisma.device.update({
+          where: { id: task.deviceId },
+          data: { totalSmsSent: { increment: 1 } },
+        });
+      }
+    }
+
     // Update campaign stats
     const stats = await this.getCampaignQuickStats(task.campaignId);
     await this.prisma.campaign.update({
@@ -407,6 +425,7 @@ export class TaskQueueService {
       where: {
         id: { in: campaign.deviceIds },
         isOnline: true,
+        isBlocked: false, // Bloklangan qurilmalarni o'tkazmaymiz
       },
       include: {
         simCards: {
@@ -420,14 +439,28 @@ export class TaskQueueService {
       },
     });
 
-    if (onlineDevices.length === 0) return null;
+    // Limitdan o'tgan qurilmalarni filter qilamiz
+    const availableDevices = onlineDevices.filter((d) => {
+      if (campaign.type === CampaignType.SMS) {
+        return d.smsLimit === 0 || d.totalSmsSent < d.smsLimit;
+      } else {
+        return d.callLimit === 0 || d.totalCallsSent < d.callLimit;
+      }
+    });
+
+    if (availableDevices.length === 0) return null;
+
+    // Keyingi kodda availableDevices ishlatiladi
+    // eslint-disable-next-line prefer-const
+    const devicesToUse = availableDevices;
+    if (devicesToUse.length === 0) return null;
 
     // Find device+sim with lowest usage (LOAD_BALANCE logic)
     let bestDevice: string | null = null;
     let bestSim: number | null = null;
     let lowestCount = Infinity;
 
-    for (const device of onlineDevices) {
+    for (const device of devicesToUse) {
       for (const sim of device.simCards) {
         const count = campaign.type === CampaignType.SMS
           ? sim.dailySmsCount

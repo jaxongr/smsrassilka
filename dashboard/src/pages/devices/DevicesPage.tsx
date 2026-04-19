@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Tag, Space, Input, Modal, Form, message, Typography, Divider } from 'antd';
+import { Table, Button, Tag, Space, Input, Modal, Form, message, Typography, Divider, InputNumber, Popconfirm } from 'antd';
 import {
   PlusOutlined,
   SearchOutlined,
@@ -8,6 +8,10 @@ import {
   ReloadOutlined,
   QrcodeOutlined,
   CopyOutlined,
+  SettingOutlined,
+  LockOutlined,
+  UnlockOutlined,
+  ReloadOutlined as ResetIcon,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
@@ -74,7 +78,10 @@ function DevicesPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [newDevice, setNewDevice] = useState<{ id: string; name: string; deviceToken: string } | null>(null);
+  const [limitOpen, setLimitOpen] = useState(false);
+  const [limitDevice, setLimitDevice] = useState<any>(null);
   const [form] = Form.useForm();
+  const [limitForm] = Form.useForm();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['devices'],
@@ -92,6 +99,40 @@ function DevicesPage() {
       queryClient.invalidateQueries({ queryKey: ['devices'] });
     },
     onError: () => message.error('Xatolik yuz berdi'),
+  });
+
+  const blockMut = useMutation({
+    mutationFn: (id: string) => devicesApi.blockDevice(id),
+    onSuccess: () => {
+      message.success('Qurilma bloklandi');
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+
+  const unblockMut = useMutation({
+    mutationFn: (id: string) => devicesApi.unblockDevice(id),
+    onSuccess: () => {
+      message.success('Qurilma blokdan chiqarildi');
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+
+  const limitMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { smsLimit?: number; callLimit?: number } }) =>
+      devicesApi.updateLimits(id, data),
+    onSuccess: () => {
+      message.success('Limit yangilandi');
+      setLimitOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
+  });
+
+  const resetMut = useMutation({
+    mutationFn: (id: string) => devicesApi.resetCounters(id),
+    onSuccess: () => {
+      message.success('Counter 0 ga qaytarildi');
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    },
   });
 
   const devices = (data?.data || []).filter(
@@ -130,16 +171,41 @@ function DevicesPage() {
     },
     {
       title: 'Holati',
-      dataIndex: 'isOnline',
-      key: 'isOnline',
-      render: (online: boolean) => (
-        <Tag color={online ? 'success' : 'default'}>
-          {online ? 'Onlayn' : 'Oflayn'}
-        </Tag>
+      key: 'status',
+      render: (_: unknown, record: any) => (
+        <Space>
+          <Tag color={record.isOnline ? 'success' : 'default'}>
+            {record.isOnline ? 'Onlayn' : 'Oflayn'}
+          </Tag>
+          {record.isBlocked && <Tag color="red">Bloklangan</Tag>}
+        </Space>
       ),
     },
     {
-      title: 'SIM kartalar',
+      title: 'SMS trafik',
+      key: 'smsTraffic',
+      render: (_: unknown, record: any) => {
+        const sent = record.totalSmsSent || 0;
+        const limit = record.smsLimit || 0;
+        if (limit === 0) {
+          return <span style={{ color: '#10B981' }}>{sent.toLocaleString()} / ∞</span>;
+        }
+        const pct = Math.min(100, Math.round((sent / limit) * 100));
+        const color = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : '#10B981';
+        return (
+          <div>
+            <div style={{ fontSize: 12, color }}>
+              {sent.toLocaleString()} / {limit.toLocaleString()}
+            </div>
+            <div style={{ width: 100, height: 4, background: '#E5E7EB', borderRadius: 2, marginTop: 2 }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 2 }} />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: 'SIM',
       dataIndex: 'simCards',
       key: 'simCards',
       render: (sims: any) =>
@@ -163,20 +229,59 @@ function DevicesPage() {
       render: (v: string) => (v ? formatDate(v) : '-'),
     },
     {
-      title: '',
-      key: 'qr',
-      width: 50,
+      title: 'Boshqaruv',
+      key: 'actions',
+      width: 200,
       render: (_: unknown, record: any) => (
-        <Button
-          type="text"
-          icon={<QrcodeOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            setNewDevice({ id: record.id, name: record.name, deviceToken: record.deviceToken });
-            setQrOpen(true);
-          }}
-          title="QR kod"
-        />
+        <Space size="small">
+          <Button
+            type="text"
+            icon={<QrcodeOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setNewDevice({ id: record.id, name: record.name, deviceToken: record.deviceToken });
+              setQrOpen(true);
+            }}
+            title="QR kod"
+          />
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLimitDevice(record);
+              limitForm.setFieldsValue({
+                smsLimit: record.smsLimit || 0,
+                callLimit: record.callLimit || 0,
+              });
+              setLimitOpen(true);
+            }}
+            title="Limit"
+          />
+          {record.isBlocked ? (
+            <Button
+              type="text"
+              style={{ color: '#10B981' }}
+              icon={<UnlockOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                unblockMut.mutate(record.id);
+              }}
+              title="Blokdan chiqarish"
+            />
+          ) : (
+            <Button
+              type="text"
+              danger
+              icon={<LockOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                blockMut.mutate(record.id);
+              }}
+              title="Bloklash"
+            />
+          )}
+        </Space>
       ),
     },
   ];
@@ -298,6 +403,70 @@ function DevicesPage() {
             Token nusxalash
           </Button>
         </QrContainer>
+      </Modal>
+
+      {/* Limit modal */}
+      <Modal
+        title={`Limit: ${limitDevice?.name || ''}`}
+        open={limitOpen}
+        onCancel={() => setLimitOpen(false)}
+        footer={[
+          <Popconfirm
+            key="reset"
+            title="Counterlarni 0 ga qaytaramizmi?"
+            onConfirm={() => limitDevice && resetMut.mutate(limitDevice.id)}
+            okText="Ha"
+            cancelText="Yo'q"
+          >
+            <Button icon={<ResetIcon />} danger>
+              Counterni nolga qaytarish
+            </Button>
+          </Popconfirm>,
+          <Button key="cancel" onClick={() => setLimitOpen(false)}>
+            Bekor qilish
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            loading={limitMut.isPending}
+            onClick={() => {
+              limitForm.validateFields().then((vals) => {
+                if (limitDevice) limitMut.mutate({ id: limitDevice.id, data: vals });
+              });
+            }}
+          >
+            Saqlash
+          </Button>,
+        ]}
+      >
+        {limitDevice && (
+          <div style={{ marginBottom: 16, padding: 12, background: '#F8FAFC', borderRadius: 8 }}>
+            <div style={{ fontSize: 13, color: '#6B7280' }}>Hozirgi trafik:</div>
+            <div style={{ fontSize: 16, fontWeight: 600, marginTop: 4 }}>
+              SMS: {(limitDevice.totalSmsSent || 0).toLocaleString()}
+              {limitDevice.smsLimit > 0 && ` / ${limitDevice.smsLimit.toLocaleString()}`}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
+              Qo'ng'iroq: {(limitDevice.totalCallsSent || 0).toLocaleString()}
+              {limitDevice.callLimit > 0 && ` / ${limitDevice.callLimit.toLocaleString()}`}
+            </div>
+          </div>
+        )}
+        <Form form={limitForm} layout="vertical">
+          <Form.Item
+            name="smsLimit"
+            label="SMS limiti (0 = cheksiz)"
+            help="Qurilma shu limitga yetganda SMS yubormaydi"
+          >
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Masalan: 1000" />
+          </Form.Item>
+          <Form.Item
+            name="callLimit"
+            label="Qo'ng'iroq limiti (0 = cheksiz)"
+          >
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Masalan: 500" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

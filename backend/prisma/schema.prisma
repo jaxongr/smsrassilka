@@ -110,6 +110,12 @@ model Device {
   lastSeenAt     DateTime?
   batteryLevel   Int?
   signalStrength Int?
+  // Umumiy SMS/Call counter va limit (trafik)
+  totalSmsSent   Int       @default(0)
+  totalCallsSent Int       @default(0)
+  smsLimit       Int       @default(0) // 0 = cheksiz
+  callLimit      Int       @default(0) // 0 = cheksiz
+  isBlocked      Boolean   @default(false) // Admin tomonidan bloklansa SMS yuborilmaydi
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

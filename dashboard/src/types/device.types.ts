@@ -20,6 +20,11 @@ export interface Device {
   lastSeenAt: string | null;
   batteryLevel: number | null;
   signalStrength: number | null;
+  totalSmsSent: number;
+  totalCallsSent: number;
+  smsLimit: number;
+  callLimit: number;
+  isBlocked: boolean;
   simCards: SimCard[];
   createdAt: string;
   updatedAt: string;
