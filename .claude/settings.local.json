@@ -7,7 +7,10 @@
       "Bash(ssh:*)",
       "Bash(sed -i \"s/1.3.1/1.4.0/g\" mobile/lib/config/constants.dart)",
       "Bash(sed -i \"s/versionCode = 31/versionCode = 40/\" mobile/android/app/build.gradle)",
-      "Bash(sed -i 's/versionName = \"1.3.1\"/versionName = \"1.4.0\"/' mobile/android/app/build.gradle)"
+      "Bash(sed -i 's/versionName = \"1.3.1\"/versionName = \"1.4.0\"/' mobile/android/app/build.gradle)",
+      "Bash(sed -i \"s/1.4.0/1.4.1/g\" mobile/lib/config/constants.dart)",
+      "Bash(sed -i \"s/versionCode = 40/versionCode = 41/\" mobile/android/app/build.gradle)",
+      "Bash(sed -i 's/versionName = \"1.4.0\"/versionName = \"1.4.1\"/' mobile/android/app/build.gradle)"
     ]
   }
 }

@@ -61,6 +61,17 @@ export class DeviceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
+      // Agar bu qurilma uchun eski socket bor bo'lsa - eski aloqani uzib, yangisini qabul qilamiz
+      const oldSocketId = this.deviceSocketMap.get(device.id);
+      if (oldSocketId && oldSocketId !== client.id) {
+        this.logger.log(`Device ${device.name} reconnected, closing old socket ${oldSocketId}`);
+        this.socketDeviceMap.delete(oldSocketId);
+        try {
+          const oldSocket = (this.server.sockets as any).get(oldSocketId);
+          if (oldSocket) oldSocket.disconnect(true);
+        } catch (_) {}
+      }
+
       // Store socket mapping
       this.deviceSocketMap.set(device.id, client.id);
       this.socketDeviceMap.set(client.id, device.id);
@@ -90,6 +101,37 @@ export class DeviceGateway implements OnGatewayConnection, OnGatewayDisconnect {
         isOnline: true,
         name: device.name,
       });
+
+      // Qayta ulanganda "yuborilgan lekin javob kelmagan" tasklarni qayta queue ga qo'yamiz
+      const stuckTasks = await this.prisma.taskLog.findMany({
+        where: {
+          deviceId: device.id,
+          status: TaskStatus.SENT_TO_DEVICE,
+        },
+        select: { id: true, campaignId: true },
+      });
+
+      if (stuckTasks.length > 0) {
+        this.logger.log(`Re-queuing ${stuckTasks.length} stuck tasks for device ${device.id}`);
+        for (const task of stuckTasks) {
+          await this.prisma.taskLog.update({
+            where: { id: task.id },
+            data: { status: TaskStatus.QUEUED, deviceId: null, simSlot: null },
+          });
+        }
+        // TaskQueue ga xabar beramiz - qayta queue qilsin
+        try {
+          const campaignIds = [...new Set(stuckTasks.map(t => t.campaignId))];
+          for (const cid of campaignIds) {
+            const tqs = this._taskQueueService;
+            if (tqs?.requeueStuckTasks) {
+              await tqs.requeueStuckTasks(cid);
+            }
+          }
+        } catch (e) {
+          this.logger.warn(`Failed to requeue tasks: ${e.message}`);
+        }
+      }
     } catch (error) {
       this.logger.error(`Device connection error: ${error.message}`);
       client.disconnect();

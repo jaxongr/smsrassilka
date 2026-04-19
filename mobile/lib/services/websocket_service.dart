@@ -11,6 +11,8 @@ class WebSocketService {
   ConnectionState _connectionState = ConnectionState.disconnected;
   String? _serverUrl;
   String? _deviceToken;
+  Timer? _healthCheckTimer;
+  DateTime? _lastActivity;
   MessageHandler? onMessageReceived;
   VoidCallback? onConnected;
   VoidCallback? onDisconnected;
@@ -24,17 +26,60 @@ class WebSocketService {
     _connectionState = ConnectionState.connecting;
 
     await _establishConnection();
+    _startHealthCheck();
+  }
+
+  void _startHealthCheck() {
+    _healthCheckTimer?.cancel();
+    _healthCheckTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _checkConnection();
+    });
+  }
+
+  void _checkConnection() {
+    if (_socket == null) return;
+
+    final lastActivityAge = _lastActivity == null
+        ? Duration.zero
+        : DateTime.now().difference(_lastActivity!);
+
+    if (_socket!.connected) {
+      try {
+        _socket!.emit('ping', {'t': DateTime.now().millisecondsSinceEpoch});
+      } catch (_) {}
+
+      // Agar 60 sekund ichida hech qanday activity bo'lmasa - qayta ulanish
+      if (lastActivityAge.inSeconds > 60) {
+        debugPrint('No activity for 60s, force reconnect');
+        _forceReconnect();
+      }
+    } else {
+      debugPrint('Socket not connected, reconnecting...');
+      _forceReconnect();
+    }
+  }
+
+  void _forceReconnect() {
+    try {
+      _socket?.disconnect();
+      _socket?.connect();
+      _lastActivity = DateTime.now();
+    } catch (e) {
+      debugPrint('Force reconnect failed: $e');
+      try {
+        _socket?.dispose();
+      } catch (_) {}
+      _socket = null;
+      _establishConnection();
+    }
   }
 
   Future<void> _establishConnection() async {
     if (_serverUrl == null || _deviceToken == null) return;
 
     try {
-      // Remove trailing slash
       var baseUrl = _serverUrl!.replaceAll(RegExp(r'/+$'), '');
 
-      // Socket.IO connects to base URL, namespace is separate
-      // Server namespace is /ws/device
       _socket = IO.io(
         '$baseUrl/ws/device',
         IO.OptionBuilder()
@@ -45,14 +90,16 @@ class WebSocketService {
             .enableAutoConnect()
             .enableReconnection()
             .setReconnectionDelay(1000)
-            .setReconnectionDelayMax(30000)
+            .setReconnectionDelayMax(10000)
             .setReconnectionAttempts(999999)
+            .setTimeout(20000)
             .build(),
       );
 
       _socket!.onConnect((_) {
         debugPrint('Connected to server');
         _connectionState = ConnectionState.connected;
+        _lastActivity = DateTime.now();
         onConnected?.call();
       });
 
@@ -68,8 +115,9 @@ class WebSocketService {
       });
 
       _socket!.onReconnect((_) {
-        debugPrint('Reconnected');
+        debugPrint('Reconnected - re-sending device info');
         _connectionState = ConnectionState.connected;
+        _lastActivity = DateTime.now();
         onConnected?.call();
       });
 
@@ -77,19 +125,29 @@ class WebSocketService {
         _connectionState = ConnectionState.reconnecting;
       });
 
-      // Server events
+      _socket!.onAny((event, data) {
+        _lastActivity = DateTime.now();
+      });
+
       _socket!.on('send_sms', (data) {
         debugPrint('Received send_sms task');
+        _lastActivity = DateTime.now();
         onMessageReceived?.call('sms:send', _toMap(data));
       });
 
       _socket!.on('make_call', (data) {
         debugPrint('Received make_call task');
+        _lastActivity = DateTime.now();
         onMessageReceived?.call('call:make', _toMap(data));
       });
 
       _socket!.on('ping', (_) {
+        _lastActivity = DateTime.now();
         _socket!.emit('pong', {});
+      });
+
+      _socket!.on('pong', (_) {
+        _lastActivity = DateTime.now();
       });
 
       _socket!.on('update_config', (data) {
@@ -125,6 +183,7 @@ class WebSocketService {
   }
 
   Future<void> disconnect() async {
+    _healthCheckTimer?.cancel();
     _connectionState = ConnectionState.disconnected;
     try {
       _socket?.disconnect();
@@ -134,6 +193,6 @@ class WebSocketService {
   }
 
   void dispose() {
-    disconnect();
+    // WebSocket ni YOPMAYMIZ - qurilma doim ishlab turishi kerak
   }
 }

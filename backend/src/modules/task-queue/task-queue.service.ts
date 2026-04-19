@@ -355,6 +355,35 @@ export class TaskQueueService {
     );
   }
 
+  /**
+   * Qurilma qayta ulanganda chaqiriladi - to'xtab qolgan tasklarni qayta queue qilish
+   */
+  async requeueStuckTasks(campaignId: string): Promise<void> {
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+    });
+    if (!campaign || campaign.status !== 'RUNNING') return;
+
+    // Bir vaqtda bitta task yuboriladigan qilib - birinchisini queue ga qo'yamiz
+    const firstPending = await this.prisma.taskLog.findFirst({
+      where: { campaignId, status: TaskStatus.PENDING },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (firstPending) {
+      const queue = campaign.type === 'CALL' ? this.callQueue : this.smsQueue;
+      await queue.add(
+        { taskId: firstPending.id, campaignId },
+        { delay: 2000, attempts: 3, removeOnComplete: true },
+      );
+      await this.prisma.taskLog.update({
+        where: { id: firstPending.id },
+        data: { status: TaskStatus.QUEUED },
+      });
+      this.logger.log(`Requeued stuck task ${firstPending.id} for campaign ${campaignId}`);
+    }
+  }
+
   async cancelCampaignTasks(campaignId: string): Promise<void> {
     await this.prisma.taskLog.updateMany({
       where: { campaignId, status: { in: [TaskStatus.PENDING, TaskStatus.QUEUED] } },
