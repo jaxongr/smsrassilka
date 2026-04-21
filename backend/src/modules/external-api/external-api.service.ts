@@ -255,16 +255,24 @@ export class ExternalApiService {
   private async findOrCreateApiCampaign(userId: string, type: CampaignType) {
     const campaignName = `API ${type} Campaign`;
 
+    // Online qurilmalarni har safar yangilanadigan qilib topamiz
+    const onlineDevices = await this.prisma.device.findMany({
+      where: { userId, isOnline: true, isBlocked: false },
+      select: { id: true },
+    });
+    const deviceIds = onlineDevices.map((d) => d.id);
+
     let campaign = await this.prisma.campaign.findFirst({
       where: {
         userId,
         name: campaignName,
-        status: 'RUNNING',
+        type,
       },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!campaign) {
-      // Need a contact group for the campaign
+      // Contact group yaratamiz
       let group = await this.prisma.contactGroup.findFirst({
         where: { userId, name: 'API Contacts' },
       });
@@ -275,12 +283,6 @@ export class ExternalApiService {
         });
       }
 
-      // Find available device IDs
-      const devices = await this.prisma.device.findMany({
-        where: { userId, isOnline: true },
-        select: { id: true },
-      });
-
       campaign = await this.prisma.campaign.create({
         data: {
           name: campaignName,
@@ -288,7 +290,16 @@ export class ExternalApiService {
           status: 'RUNNING',
           userId,
           contactGroupId: group.id,
-          deviceIds: devices.map((d) => d.id),
+          deviceIds,
+        },
+      });
+    } else {
+      // Mavjud kampaniyani RUNNING qilib yangi online qurilmalar bilan yangilaymiz
+      campaign = await this.prisma.campaign.update({
+        where: { id: campaign.id },
+        data: {
+          status: 'RUNNING',
+          deviceIds,
         },
       });
     }
