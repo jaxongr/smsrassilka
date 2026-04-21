@@ -178,7 +178,9 @@ export class TaskQueueService {
       return;
     }
 
-    if (task.campaign.status !== 'RUNNING') {
+    // API kampaniyalar uchun status tekshiruv yo'q - ular doimo ishlaydi
+    const isApiCampaign = task.campaign.name?.startsWith('API ');
+    if (!isApiCampaign && task.campaign.status !== 'RUNNING') {
       this.logger.log(`Campaign ${campaignId} not running, skipping task ${taskId}`);
       return;
     }
@@ -312,9 +314,15 @@ export class TaskQueueService {
       },
     });
 
-    // Check if campaign is complete
+    // Check if campaign is complete (but NEVER auto-complete API campaigns)
+    const campaignForCheck = await this.prisma.campaign.findUnique({
+      where: { id: task.campaignId },
+      select: { name: true },
+    });
+    const isApiCampaign = campaignForCheck?.name?.startsWith('API ');
+
     const totalProcessed = stats.sent + stats.delivered + stats.failed + stats.cancelled;
-    if (totalProcessed >= stats.total && stats.total > 0) {
+    if (!isApiCampaign && totalProcessed >= stats.total && stats.total > 0) {
       await this.prisma.campaign.update({
         where: { id: task.campaignId },
         data: { status: 'COMPLETED', completedAt: new Date() },
